@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Influencers — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div><div class="tb-title">Influencer Marketing</div><div class="tb-sub">Roster · Engagements · Campaign Performance</div></div>
+    <div class="tb-r">
+      <span class="fy-chip">LKR · FY <span id="fy-label"></span></span>
+      <button class="btn btn-out btn-sm" onclick="openPerfModal()">📊 Log Performance</button>
+      <button class="btn btn-out" onclick="openEngModal()">+ Log Engagement</button>
+      <button class="btn btn-gold" onclick="openInfModal()">+ Add Influencer</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="kpi-row k4" id="inf-kpis"></div>
+
+    <div class="sec"><div class="sec-t">Influencer Roster</div></div>
+    <div class="inf-grid" id="inf-cards"></div>
+
+    <div class="sec">
+      <div class="sec-t">Engagement Log</div>
+      <div class="m-tabs" id="e-tabs" style="margin:0"></div>
+    </div>
+    <div class="tc">
+      <table>
+        <thead><tr><th>Month</th><th>Influencer</th><th>Platform</th><th>Content Type</th><th>Campaign</th><th>Fee (LKR)</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody id="eng-tbl"></tbody>
+      </table>
+    </div>
+
+    <!-- ══ PERFORMANCE METRICS TABLE ══ -->
+    <div class="sec">
+      <div class="sec-t">📊 Campaign Performance Metrics</div>
+      <div class="m-tabs" id="p-tabs" style="margin:0"></div>
+    </div>
+    <div class="tc">
+      <div class="tc-head">
+        <div class="tc-title">Post-by-Post Performance — <span id="p-tbl-lbl">All</span></div>
+        <button class="btn btn-gold btn-sm" onclick="openPerfModal()">+ Log Performance</button>
+      </div>
+      <div class="overflow-x">
+        <table>
+          <thead><tr>
+            <th>Month</th><th>Influencer</th><th>Platform</th><th>Campaign</th><th>Content Type</th>
+            <th>Post Date</th><th>Reach</th><th>Impressions</th><th>Likes</th><th>Comments</th>
+            <th>Shares</th><th>Saves</th><th>Eng. Rate</th><th>Post URL</th><th>Notes</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="perf-tbl"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- INFLUENCER MODAL -->
+<div class="overlay" id="m-inf">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="inf-t">Add Influencer</div><button class="modal-x" onclick="closeM('m-inf')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg"><div class="fr"><label>Full Name</label><input type="text" id="i-name" placeholder="Name"></div><div class="fr"><label>Handle</label><input type="text" id="i-handle" placeholder="@handle"></div></div>
+      <div class="fg">
+        <div class="fr"><label>Platform</label><select id="i-plat"><option>Instagram</option><option>TikTok</option><option>YouTube</option><option>Facebook</option><option>LinkedIn</option></select></div>
+        <div class="fr"><label>Niche</label><input type="text" id="i-niche" placeholder="e.g. Travel, Food, Lifestyle"></div>
+      </div>
+      <div class="fg3">
+        <div class="fr"><label>Followers</label><input type="number" id="i-fol" placeholder="0"></div>
+        <div class="fr"><label>Engagement Rate %</label><input type="number" id="i-er" placeholder="0.00" step="0.01"></div>
+        <div class="fr"><label>Typical Fee (LKR)</label><input type="number" id="i-fee" placeholder="0"></div>
+      </div>
+      <div class="fg"><div class="fr"><label>Tier</label><select id="i-tier"><option>Nano (&lt;10K)</option><option>Micro (10K–50K)</option><option>Mid (50K–500K)</option><option>Macro (500K+)</option></select></div><div class="fr"><label>Profile Link</label><input type="text" id="i-link" placeholder="https://..."></div></div>
+      <div class="fr"><label>Notes</label><textarea id="i-notes"></textarea></div>
+      <input type="hidden" id="i-id">
+    </div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-inf')">Cancel</button><button class="btn btn-gold" onclick="saveInf()" id="i-save">Add Influencer</button></div>
+  </div>
+</div>
+
+<!-- ENGAGEMENT MODAL -->
+<div class="overlay" id="m-eng">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="eng-t">Log Engagement</div><button class="modal-x" onclick="closeM('m-eng')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg">
+        <div class="fr"><label>Month</label><select id="e-mo"></select></div>
+        <div class="fr"><label>Influencer</label><select id="e-inf"></select></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Content Type</label><select id="e-ct"><option>Instagram Post</option><option>Instagram Reel</option><option>Instagram Story</option><option>TikTok Video</option><option>YouTube Video</option><option>Blog Post</option><option>Hosted Stay</option><option>Event Attendance</option><option>Other</option></select></div>
+        <div class="fr"><label>Fee (LKR)</label><input type="number" id="e-fee" placeholder="0"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Campaign Name</label><input type="text" id="e-camp" placeholder="e.g. Summer Staycation"></div>
+        <div class="fr"><label>Status</label><select id="e-status"><option>Planned</option><option>Brief Sent</option><option>Confirmed</option><option>Content Live</option><option>Completed</option><option>Cancelled</option></select></div>
+      </div>
+      <div class="fr"><label>Notes</label><textarea id="e-notes"></textarea></div>
+      <input type="hidden" id="e-id">
+    </div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-eng')">Cancel</button><button class="btn btn-gold" onclick="saveEng()" id="e-save">Log Engagement</button></div>
+  </div>
+</div>
+
+<!-- PERFORMANCE METRICS MODAL -->
+<div class="overlay" id="m-perf">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-t" id="perf-t">Log Campaign Performance</div>
+        <div style="font-size:10.5px;color:var(--text-2);margin-top:2px">Record reach, likes, comments, shares and post link for a campaign</div>
+      </div>
+      <button class="modal-x" onclick="closeM('m-perf')">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="modal-section">
+        <div class="modal-section-title">📋 Campaign Details</div>
+        <div class="fg3">
+          <div class="fr"><label>Month</label><select id="p-mo"></select></div>
+          <div class="fr"><label>Influencer</label><select id="p-inf"></select></div>
+          <div class="fr"><label>Post Date</label><input type="date" id="p-date"></div>
+        </div>
+        <div class="fg">
+          <div class="fr"><label>Campaign Name</label><input type="text" id="p-camp" placeholder="Campaign or collab name"></div>
+          <div class="fr"><label>Content Type</label><select id="p-ct"><option>Instagram Post</option><option>Instagram Reel</option><option>Instagram Story</option><option>TikTok Video</option><option>YouTube Video</option><option>Blog Post</option><option>Hosted Stay</option><option>Event Attendance</option><option>Other</option></select></div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">📊 Performance Metrics</div>
+        <div class="fg3">
+          <div class="fr"><label>Reach</label><input type="number" id="p-reach" oninput="calcER()" placeholder="0"></div>
+          <div class="fr"><label>Impressions</label><input type="number" id="p-impr" placeholder="0"></div>
+          <div class="fr"><label>Likes</label><input type="number" id="p-likes" oninput="calcER()" placeholder="0"></div>
+        </div>
+        <div class="fg3">
+          <div class="fr"><label>Comments</label><input type="number" id="p-comments" oninput="calcER()" placeholder="0"></div>
+          <div class="fr"><label>Shares</label><input type="number" id="p-shares" oninput="calcER()" placeholder="0"></div>
+          <div class="fr"><label>Saves</label><input type="number" id="p-saves" oninput="calcER()" placeholder="0"></div>
+        </div>
+        <div class="fg">
+          <div class="fr"><label>Engagement Rate % <span style="font-size:9.5px;color:var(--text-3)">(auto-calculated or enter manually)</span></label>
+            <div style="display:flex;gap:6px">
+              <input type="number" id="p-er" placeholder="0.00" step="0.01" style="flex:1">
+              <button class="btn btn-out btn-sm" onclick="calcER()" style="white-space:nowrap">Auto-calc</button>
+            </div>
+          </div>
+          <div class="fr"><label>Post URL / Link <span style="color:var(--red-brand)">*</span></label><input type="text" id="p-url" placeholder="https://www.instagram.com/p/..."></div>
+        </div>
+      </div>
+      <div class="fr"><label>Notes / Observations</label><textarea id="p-notes" placeholder="What performed well? Any observations about this post..."></textarea></div>
+      <input type="hidden" id="p-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-perf')">Cancel</button>
+      <button class="btn btn-gold" onclick="savePerf()" id="p-save">Save Performance</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('influencers');
+requireAuth();
+document.getElementById('fy-label').textContent = `${FY}–${String(FY+1).slice(-2)}`;
+let D = {}, eFilter = 'all', pFilter = 'all';
+
+async function load(){
+  showLoader('Loading...');
+  try{
+    const r = await DB.getAll(); D = r;
+    // Load performance metrics from InfluencerPerf sheet
+    try { D.perfMetrics = await fetchPerf(); } catch(e){ D.perfMetrics = []; }
+    renderSidebar(r.user, r.sidebarFields);
+    render();
+  } catch(e){ toast('Load failed: '+e.message,'e'); }
+  hideLoader();
+}
+async function fetchPerf(){
+  const r = await api('GET',{action:'getSheet',token:DB.getToken(),sheet:'InfluencerPerf'});
+  return r.data||[];
+}
+
+function getYTDFee(infId){ return (D.engagements||[]).filter(e=>e.influencer_id==infId).reduce((a,e)=>a+Number(e.fee||0),0); }
+
+function render(){
+  const infs = D.influencers||[], engs = D.engagements||[];
+  const totFee = engs.reduce((a,e)=>a+Number(e.fee||0),0);
+  const totalReach = (D.perfMetrics||[]).reduce((a,p)=>a+Number(p.reach||0),0);
+
+  document.getElementById('inf-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">Total Influencers</div><div class="kpi-val">${infs.length}</div><div class="kpi-sub">in roster</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">YTD Influencer Spend</div><div class="kpi-val">${fmt(totFee)}</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Active Campaigns</div><div class="kpi-val">${engs.filter(e=>['Confirmed','Content Live'].includes(e.status)).length}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Total Reach (All Posts)</div><div class="kpi-val">${fmtK(totalReach)}</div><div class="kpi-sub">${(D.perfMetrics||[]).length} posts tracked</div></div>`;
+
+  // Roster cards
+  let cards='';
+  infs.forEach(inf=>{
+    const infPerf = (D.perfMetrics||[]).filter(p=>p.influencer_id==inf.id);
+    const avgER = infPerf.length ? (infPerf.reduce((a,p)=>a+Number(p.engagement_rate||0),0)/infPerf.length).toFixed(2) : null;
+    cards+=`<div class="inf-c">
+      <div class="inf-name">${inf.name}</div>
+      <div class="inf-handle">${inf.handle||'—'} · <span class="pill pg">${inf.platform||'—'}</span></div>
+      <div class="inf-s"><span>Followers</span><span class="v">${Number(inf.followers||0).toLocaleString()}</span></div>
+      <div class="inf-s"><span>Engagement Rate</span><span class="v">${inf.engagement_rate||0}%</span></div>
+      <div class="inf-s"><span>Typical Fee</span><span class="v">${fmt(inf.typical_fee)}</span></div>
+      <div class="inf-s"><span>YTD Paid</span><span class="v" style="color:var(--amber)">${fmt(getYTDFee(inf.id))}</span></div>
+      <div class="inf-s"><span>Niche</span><span class="v">${inf.niche||'—'}</span></div>
+      <div class="inf-s"><span>Tier</span><span class="v">${inf.tier||'—'}</span></div>
+      ${avgER?`<div class="inf-s"><span>Avg Post ER</span><span class="v" style="color:var(--green)">${avgER}%</span></div>`:''}
+      ${infPerf.length?`<div class="inf-s"><span>Posts Tracked</span><span class="v">${infPerf.length}</span></div>`:''}
+      ${inf.profile_link?`<div class="inf-s"><a href="${inf.profile_link}" target="_blank" style="color:var(--blue);font-size:11px">View Profile →</a></div>`:''}
+      <div class="inf-acts">
+        <button class="btn btn-edit btn-sm" onclick="editInf('${inf.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="delInf('${inf.id}')">✕</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('inf-cards').innerHTML=cards||`<div style="grid-column:1/-1"><div class="empty"><div class="ei">👤</div>No influencers yet.</div></div>`;
+
+  // Engagement tabs & table
+  document.getElementById('e-tabs').innerHTML=`<div class="m-tab ${eFilter==='all'?'active':''}" onclick="setEF('all')">All</div>`+
+    FY_MONTHS.map((m,i)=>`<div class="m-tab ${eFilter==i?'active':''}" onclick="setEF(${i})">${FY_SHORT[i]}</div>`).join('');
+  const filtered = eFilter==='all'?engs:engs.filter(e=>e.fy_month==eFilter);
+  const sc={'Planned':'pb','Brief Sent':'pb','Confirmed':'bgo','Content Live':'pgr','Completed':'pgr','Cancelled':'pr'};
+  let eRows='';
+  filtered.forEach(e=>{
+    const inf=infs.find(x=>x.id==e.influencer_id);
+    eRows+=`<tr><td>${fyLabel(e.fy_month)}</td><td><strong>${inf?.name||'Unknown'}</strong></td><td><span class="pill pg">${inf?.platform||'—'}</span></td><td>${e.content_type||'—'}</td><td>${e.campaign||'—'}</td><td class="mono" style="font-weight:600">${fmt(e.fee)}</td><td><span class="pill ${sc[e.status]||'pb'}">${e.status||'—'}</span></td><td style="font-size:11px;color:var(--text-2)">${e.notes||'—'}</td><td><div style="display:flex;gap:4px"><button class="btn btn-edit btn-sm" onclick="editEng('${e.id}')">Edit</button><button class="btn btn-ghost btn-sm" onclick="delEng('${e.id}')">✕</button></div></td></tr>`;
+  });
+  document.getElementById('eng-tbl').innerHTML=eRows||`<tr><td colspan="9"><div class="empty"><div class="ei">◎</div>No engagements logged yet.</div></td></tr>`;
+
+  // Performance metrics tabs & table
+  document.getElementById('p-tabs').innerHTML=`<div class="m-tab ${pFilter==='all'?'active':''}" onclick="setPF('all')">All</div>`+
+    FY_MONTHS.map((m,i)=>`<div class="m-tab ${pFilter==i?'active':''}" onclick="setPF(${i})">${FY_SHORT[i]}</div>`).join('');
+  const pFiltered = pFilter==='all'?D.perfMetrics||[]:(D.perfMetrics||[]).filter(p=>p.fy_month==pFilter);
+  document.getElementById('p-tbl-lbl').textContent = pFilter==='all'?'All Months':fyLabel(pFilter);
+  let pRows='';
+  pFiltered.slice().sort((a,b)=>new Date(b.post_date||0)-new Date(a.post_date||0)).forEach(p=>{
+    const inf=infs.find(x=>x.id==p.influencer_id);
+    const totEng=(Number(p.likes||0)+Number(p.comments||0)+Number(p.shares||0)+Number(p.saves||0));
+    const autoER=p.reach>0?(totEng/p.reach*100).toFixed(2)+'%':'—';
+    pRows+=`<tr>
+      <td>${fyLabel(p.fy_month)}</td>
+      <td><strong>${inf?.name||'Unknown'}</strong></td>
+      <td><span class="pill pg">${inf?.platform||'—'}</span></td>
+      <td style="font-size:11px">${p.campaign||'—'}</td>
+      <td style="font-size:11px">${p.content_type||'—'}</td>
+      <td>${fmtDate(p.post_date)||'—'}</td>
+      <td class="mono">${Number(p.reach||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.impressions||0).toLocaleString()}</td>
+      <td class="mono" style="color:var(--red-light)">${Number(p.likes||0).toLocaleString()}</td>
+      <td class="mono" style="color:var(--blue)">${Number(p.comments||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.shares||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.saves||0).toLocaleString()}</td>
+      <td class="mono" style="color:var(--green);font-weight:600">${p.engagement_rate?p.engagement_rate+'%':autoER}</td>
+      <td>${p.post_url?`<a href="${p.post_url}" target="_blank" style="color:var(--blue);font-size:11px">View Post ↗</a>`:'—'}</td>
+      <td style="font-size:11px;color:var(--text-2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.notes||'—'}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-edit btn-sm" onclick="editPerf('${p.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="delPerf('${p.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('perf-tbl').innerHTML=pRows||`<tr><td colspan="16"><div class="empty"><div class="ei">📊</div>No performance data yet. Click "+ Log Performance" to add post metrics.</div></td></tr>`;
+}
+
+function setEF(v){eFilter=v;render();}
+function setPF(v){pFilter=v;render();}
+
+// ── Influencer CRUD ───────────────────────────────
+function openInfModal(){
+  document.getElementById('inf-t').textContent='Add Influencer';document.getElementById('i-save').textContent='Add Influencer';document.getElementById('i-id').value='';
+  ['i-name','i-handle','i-niche','i-link','i-notes','i-fol','i-er','i-fee'].forEach(id=>document.getElementById(id).value='');openM('m-inf');
+}
+function editInf(id){
+  const inf=(D.influencers||[]).find(x=>x.id==id);if(!inf)return;
+  document.getElementById('inf-t').textContent='Edit Influencer';document.getElementById('i-save').textContent='Update';document.getElementById('i-id').value=id;
+  document.getElementById('i-name').value=inf.name||'';document.getElementById('i-handle').value=inf.handle||'';
+  document.getElementById('i-plat').value=inf.platform||'Instagram';document.getElementById('i-niche').value=inf.niche||'';
+  document.getElementById('i-fol').value=inf.followers||'';document.getElementById('i-er').value=inf.engagement_rate||'';
+  document.getElementById('i-fee').value=inf.typical_fee||'';document.getElementById('i-tier').value=inf.tier||'Micro (10K–50K)';
+  document.getElementById('i-link').value=inf.profile_link||'';document.getElementById('i-notes').value=inf.notes||'';openM('m-inf');
+}
+async function saveInf(){
+  const eid=document.getElementById('i-id').value;const name=document.getElementById('i-name').value.trim();if(!name){toast('Name required.','e');return;}
+  const p={name,handle:document.getElementById('i-handle').value,platform:document.getElementById('i-plat').value,niche:document.getElementById('i-niche').value,followers:parseInt(document.getElementById('i-fol').value)||0,engagement_rate:parseFloat(document.getElementById('i-er').value)||0,typical_fee:parseFloat(document.getElementById('i-fee').value)||0,tier:document.getElementById('i-tier').value,profile_link:document.getElementById('i-link').value,notes:document.getElementById('i-notes').value};
+  showLoader('Saving...');try{if(eid)await DB.update('INFLUENCERS',eid,p);else await DB.add('INFLUENCERS',p);const r=await DB.getAll();D=r;try{D.perfMetrics=await fetchPerf();}catch(e){D.perfMetrics=[];}closeM('m-inf');render();toast(eid?'Updated!':'Added!');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+async function delInf(id){if(!confirm('Delete influencer?'))return;showLoader('Deleting...');try{await DB.remove('INFLUENCERS',id);const r=await DB.getAll();D=r;try{D.perfMetrics=await fetchPerf();}catch(e){D.perfMetrics=[];}render();toast('Deleted.');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();}
+
+// ── Engagement CRUD ───────────────────────────────
+function openEngModal(){
+  document.getElementById('eng-t').textContent='Log Engagement';document.getElementById('e-save').textContent='Log Engagement';document.getElementById('e-id').value='';
+  document.getElementById('e-mo').innerHTML=FY_MONTHS.map((m,i)=>`<option value="${i}" ${i===fyIdxNow()?'selected':''}>${fyLabel(i)}</option>`).join('');
+  document.getElementById('e-inf').innerHTML=(D.influencers||[]).map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  document.getElementById('e-fee').value='';document.getElementById('e-camp').value='';document.getElementById('e-notes').value='';openM('m-eng');
+}
+function editEng(id){
+  const e=(D.engagements||[]).find(x=>x.id==id);if(!e)return;
+  document.getElementById('eng-t').textContent='Edit Engagement';document.getElementById('e-save').textContent='Update';document.getElementById('e-id').value=id;
+  document.getElementById('e-mo').innerHTML=FY_MONTHS.map((m,i)=>`<option value="${i}" ${i==e.fy_month?'selected':''}>${fyLabel(i)}</option>`).join('');
+  document.getElementById('e-inf').innerHTML=(D.influencers||[]).map(i=>`<option value="${i.id}" ${i.id==e.influencer_id?'selected':''}>${i.name}</option>`).join('');
+  document.getElementById('e-ct').value=e.content_type||'';document.getElementById('e-fee').value=e.fee||'';
+  document.getElementById('e-camp').value=e.campaign||'';document.getElementById('e-status').value=e.status||'Planned';
+  document.getElementById('e-notes').value=e.notes||'';openM('m-eng');
+}
+async function saveEng(){
+  const eid=document.getElementById('e-id').value;
+  const p={influencer_id:document.getElementById('e-inf').value,fy:FY,fy_month:parseInt(document.getElementById('e-mo').value),content_type:document.getElementById('e-ct').value,fee:parseFloat(document.getElementById('e-fee').value)||0,campaign:document.getElementById('e-camp').value,status:document.getElementById('e-status').value,notes:document.getElementById('e-notes').value};
+  showLoader('Saving...');try{if(eid)await DB.update('ENGAGEMENTS',eid,p);else await DB.add('ENGAGEMENTS',p);const r=await DB.getAll();D=r;try{D.perfMetrics=await fetchPerf();}catch(e){D.perfMetrics=[];}closeM('m-eng');render();toast(eid?'Updated!':'Logged!');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+async function delEng(id){if(!confirm('Delete?'))return;showLoader('Deleting...');try{await DB.remove('ENGAGEMENTS',id);const r=await DB.getAll();D=r;try{D.perfMetrics=await fetchPerf();}catch(e){D.perfMetrics=[];}render();toast('Deleted.');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();}
+
+// ── Performance Metrics CRUD ──────────────────────
+function openPerfModal(){
+  document.getElementById('perf-t').textContent='Log Campaign Performance';document.getElementById('p-save').textContent='Save Performance';document.getElementById('p-id').value='';
+  document.getElementById('p-mo').innerHTML=FY_MONTHS.map((m,i)=>`<option value="${i}" ${i===fyIdxNow()?'selected':''}>${fyLabel(i)}</option>`).join('');
+  document.getElementById('p-inf').innerHTML=(D.influencers||[]).map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  document.getElementById('p-date').value=new Date().toISOString().split('T')[0];
+  ['p-camp','p-reach','p-impr','p-likes','p-comments','p-shares','p-saves','p-er','p-url','p-notes'].forEach(id=>document.getElementById(id).value='');
+  openM('m-perf');
+}
+function editPerf(id){
+  const p=(D.perfMetrics||[]).find(x=>x.id==id);if(!p)return;
+  document.getElementById('perf-t').textContent='Edit Performance';document.getElementById('p-save').textContent='Update';document.getElementById('p-id').value=id;
+  document.getElementById('p-mo').innerHTML=FY_MONTHS.map((m,i)=>`<option value="${i}" ${i==p.fy_month?'selected':''}>${fyLabel(i)}</option>`).join('');
+  document.getElementById('p-inf').innerHTML=(D.influencers||[]).map(i=>`<option value="${i.id}" ${i.id==p.influencer_id?'selected':''}>${i.name}</option>`).join('');
+  document.getElementById('p-date').value=fmtDate(p.post_date)||'';
+  document.getElementById('p-camp').value=p.campaign||'';document.getElementById('p-ct').value=p.content_type||'Instagram Post';
+  document.getElementById('p-reach').value=p.reach||'';document.getElementById('p-impr').value=p.impressions||'';
+  document.getElementById('p-likes').value=p.likes||'';document.getElementById('p-comments').value=p.comments||'';
+  document.getElementById('p-shares').value=p.shares||'';document.getElementById('p-saves').value=p.saves||'';
+  document.getElementById('p-er').value=p.engagement_rate||'';document.getElementById('p-url').value=p.post_url||'';
+  document.getElementById('p-notes').value=p.notes||'';openM('m-perf');
+}
+function calcER(silent){
+  const reach=parseFloat(document.getElementById('p-reach').value)||0;
+  const likes=parseFloat(document.getElementById('p-likes').value)||0;
+  const comments=parseFloat(document.getElementById('p-comments').value)||0;
+  const shares=parseFloat(document.getElementById('p-shares').value)||0;
+  const saves=parseFloat(document.getElementById('p-saves').value)||0;
+  if(!reach) return;
+  const er=((likes+comments+shares+saves)/reach*100).toFixed(2);
+  document.getElementById('p-er').value=er;
+  if(!silent) toast('Engagement rate: '+er+'%');
+}
+async function savePerf(){
+  const eid=document.getElementById('p-id').value;
+  const infId=document.getElementById('p-inf').value;
+  if(!infId){toast('Select an influencer.','e');return;}
+  const p={
+    influencer_id:infId,fy:FY,fy_month:parseInt(document.getElementById('p-mo').value),
+    post_date:document.getElementById('p-date').value,campaign:document.getElementById('p-camp').value,
+    content_type:document.getElementById('p-ct').value,reach:parseInt(document.getElementById('p-reach').value)||0,
+    impressions:parseInt(document.getElementById('p-impr').value)||0,likes:parseInt(document.getElementById('p-likes').value)||0,
+    comments:parseInt(document.getElementById('p-comments').value)||0,shares:parseInt(document.getElementById('p-shares').value)||0,
+    saves:parseInt(document.getElementById('p-saves').value)||0,engagement_rate:parseFloat(document.getElementById('p-er').value)||0,
+    post_url:document.getElementById('p-url').value,notes:document.getElementById('p-notes').value
+  };
+  showLoader('Saving...');
+  try{
+    if(eid) await DB.update('INF_PERF',eid,p); else await DB.add('INF_PERF',p);
+    D.perfMetrics=await fetchPerf();closeM('m-perf');render();toast(eid?'Updated!':'Performance logged!');
+  }catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+async function delPerf(id){
+  if(!confirm('Delete this performance entry?'))return;
+  showLoader('Deleting...');
+  try{await DB.remove('INF_PERF',id);D.perfMetrics=await fetchPerf();render();toast('Deleted.');}
+  catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+
+load();
+</script>
+</body>
+</html>

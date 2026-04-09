@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Settings — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<style>
+.dd-group{background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:16px 18px;margin-bottom:12px;}
+.dd-group-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+.dd-group-title{font-size:12.5px;font-weight:600;color:var(--text);}
+.dd-group-sub{font-size:10.5px;color:var(--text-2);margin-top:2px;}
+.dd-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:28px;}
+.dd-chip{display:inline-flex;align-items:center;gap:5px;background:var(--red-bg);border:1px solid var(--border-r);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--red-light);}
+.dd-chip .rm{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:13px;padding:0;line-height:1;font-family:'Poppins',sans-serif;}
+.dd-chip .rm:hover{color:var(--danger);}
+.dd-add-row{display:flex;gap:6px;}
+.dd-add-row input{flex:1;padding:6px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'Poppins',sans-serif;color:var(--text);outline:none;}
+.dd-add-row input:focus{border-color:var(--red-brand);}
+.dd-add-row button{padding:6px 12px;background:var(--red-brand);color:#fff;border:none;border-radius:6px;font-size:11.5px;font-family:'Poppins',sans-serif;cursor:pointer;white-space:nowrap;}
+.dd-add-row button:hover{background:var(--red-light);}
+.quota-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.quota-row input{width:80px;padding:7px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:600;color:var(--text);text-align:center;font-family:'Poppins',sans-serif;outline:none;}
+.quota-row input:focus{border-color:var(--red-brand);}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div><div class="tb-title">Settings</div><div class="tb-sub">Admin — dropdowns, quotas, line items, sidebar links</div></div>
+    <div class="tb-r"><span class="fy-chip">Admin Access</span></div>
+  </header>
+  <div class="content">
+
+    <!-- ══ DROPDOWN MANAGER ══════════════════════════ -->
+    <div class="sec"><div class="sec-t">🔽 Dropdown Options Manager</div></div>
+    <p style="font-size:11.5px;color:var(--text-2);margin-bottom:14px">Edit the options for every dropdown in the app. Changes save instantly to localStorage and apply across all pages immediately.</p>
+
+    <div id="dd-manager"></div>
+
+    <div class="divider"></div>
+
+    <!-- ══ KISSFM QUOTA ══════════════════════════════ -->
+    <div class="sec"><div class="sec-t">📻 KissFM Agreement — Monthly Quota</div></div>
+    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:18px;max-width:480px;margin-bottom:4px">
+      <p style="font-size:12px;color:var(--text-2);margin-bottom:14px">Set the maximum number of KissFM vouchers allowed per month. Change this whenever your agreement with KissFM is updated.</p>
+      <div class="quota-row">
+        <input type="number" id="kiss-quota-inp" min="1" max="999" value="12">
+        <button class="btn btn-gold" onclick="saveKissQuota()">Save Quota</button>
+        <span style="font-size:11.5px;color:var(--text-2)">Current: <strong id="kiss-quota-display" style="color:var(--red-light)">12</strong> / month</span>
+      </div>
+      <p style="font-size:10.5px;color:var(--text-3);margin-top:10px">This setting is stored in your browser and shared across sessions on this device. Update it whenever your KissFM agreement changes.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ LINE ITEMS ════════════════════════════════ -->
+    <div class="sec"><div class="sec-t">Budget Line Items</div><button class="btn btn-gold" onclick="openLIModal()">+ Add Line Item</button></div>
+    <div class="tc">
+      <table>
+        <thead><tr><th>#</th><th>Line Item</th><th>Category</th><th>Linked Module</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody id="li-tbl"></tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ SIDEBAR QUICK-LINKS ═══════════════════════ -->
+    <div class="sec"><div class="sec-t">Sidebar Quick-Links</div><button class="btn btn-gold" onclick="openSBFModal()">+ Add Quick-Link</button></div>
+    <p style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Links and notes shown in the sidebar — e.g. Google Drive, hotel website, brand guidelines.</p>
+    <div class="tc">
+      <table>
+        <thead><tr><th>Label</th><th>URL / Value</th><th>Type</th><th>Actions</th></tr></thead>
+        <tbody id="sbf-tbl"></tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ USERS ══════════════════════════════════════ -->
+    <div class="sec"><div class="sec-t">User Management</div></div>
+    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:18px;margin-bottom:16px">
+      <p style="font-size:12.5px;color:var(--text-2);margin-bottom:12px">Users are managed in your <strong style="color:var(--red-light)">Google Sheet → Users tab</strong>.</p>
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:12px;font-size:12px;color:var(--text-2);margin-bottom:10px">
+        <div>1. Open your Google Sheet → click <strong>Users</strong> tab</div>
+        <div>2. Edit <strong>username</strong>, <strong>password</strong>, <strong>role</strong> columns</div>
+        <div>3. Set <strong>active</strong> to <code style="color:var(--green)">yes</code> or <code style="color:var(--danger)">no</code></div>
+      </div>
+      <p style="font-size:11px;color:var(--text-2)">Roles: <span class="pill pb">admin</span> full access &nbsp;|&nbsp; <span class="pill pgr">editor</span> add/edit &nbsp;|&nbsp; <span class="pill pa">viewer</span> read only</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ CONNECTION & EXPORT ════════════════════════ -->
+    <div class="sec"><div class="sec-t">Google Apps Script Connection</div></div>
+    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:18px;margin-bottom:16px">
+      <div class="fg" style="max-width:560px">
+        <div class="fr"><label>Current Apps Script URL</label><input type="text" id="api-url" placeholder="https://script.google.com/macros/s/.../exec" readonly style="opacity:.7"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-out" onclick="testAPI()">Test Connection</button>
+        <button class="btn btn-out" onclick="exportData()">⬇ Export All Data (JSON)</button>
+        <a class="btn btn-out" id="sheets-link" href="#" target="_blank">↗ Open Google Sheet</a>
+      </div>
+      <div id="api-result" style="margin-top:10px;font-size:12px"></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- LINE ITEM MODAL -->
+<div class="overlay" id="m-li">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="li-t">Add Line Item</div><button class="modal-x" onclick="closeM('m-li')">×</button></div>
+    <div class="modal-bd">
+      <div class="fr"><label>Line Item Name</label><input type="text" id="li-name" placeholder="e.g. Entertainment, OTA Advertising"></div>
+      <div class="fg">
+        <div class="fr"><label>Category</label>
+          <select id="li-cat"><option>Digital</option><option>Social Media</option><option>Influencer</option><option>Print & Production</option><option>Events</option><option>PR & Media</option><option>Entertainment</option><option>Other</option></select>
+        </div>
+        <div class="fr"><label>Sort Order</label><input type="number" id="li-sort" placeholder="1"></div>
+      </div>
+      <div class="fr"><label>Linked Module</label>
+        <select id="li-link">
+          <option value="">None</option>
+          <option value="social">Social Media</option>
+          <option value="influencer">Influencer</option>
+          <option value="print">Suppliers / Print</option>
+        </select>
+      </div>
+      <div class="fr"><label>Notes</label><textarea id="li-notes" placeholder="Description..."></textarea></div>
+      <input type="hidden" id="li-id">
+    </div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-li')">Cancel</button><button class="btn btn-gold" onclick="saveLI()" id="li-save">Add</button></div>
+  </div>
+</div>
+
+<!-- SIDEBAR FIELD MODAL -->
+<div class="overlay" id="m-sbf">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="sbf-t">Add Quick-Link</div><button class="modal-x" onclick="closeM('m-sbf')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg">
+        <div class="fr"><label>Label</label><input type="text" id="sbf-lbl" placeholder="e.g. Media Kit"></div>
+        <div class="fr"><label>Type</label><select id="sbf-type"><option value="link">External Link</option><option value="note">Note / Text</option></select></div>
+      </div>
+      <div class="fr"><label>URL or Value</label><input type="text" id="sbf-val" placeholder="https://..."></div>
+      <input type="hidden" id="sbf-id">
+    </div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-sbf')">Cancel</button><button class="btn btn-gold" onclick="saveSBF()" id="sbf-save">Add</button></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('settings');
+const sess = requireAuth();
+if (!sess) {
+  window.location.href = '../index.html';
+} else if (sess.role !== 'admin') {
+  alert('Settings is restricted to admin users.\n\nYour role: ' + (sess.role||'unknown') + '\n\nPlease sign out and log in with the admin account.');
+  window.location.href = 'dashboard.html';
+}
+let D = {};
+
+// ══════════════════════════════════════════════════
+// DROPDOWN DEFINITIONS — defaults if none saved yet
+// ══════════════════════════════════════════════════
+const DD_DEFAULTS = {
+  func_event_types: {
+    label: 'Functions — Event Types',
+    page: 'Functions & Events',
+    defaults: ['Wedding','Birthday','High Tea','Proposal','Engagement','Corporate Event','Get Together','Party','Other']
+  },
+  func_venues: {
+    label: 'Functions — Venues',
+    page: 'Functions & Events',
+    defaults: ['Amber Poolside','Cloud Cafe','Scarlet','The Loft']
+  },
+  func_menus: {
+    label: 'Functions — Menu Types',
+    page: 'Functions & Events',
+    defaults: ['Wedding Menu 1','Wedding Menu 2','Wedding Menu 3','High Tea','High Tea for 1','High Tea for 2','High Tea for 4','Finger Foods','Custom Menu']
+  },
+  func_sources: {
+    label: 'Functions — Inquiry Sources',
+    page: 'Functions & Events',
+    defaults: ['Social Media','Website','Direct Walk-in','Recommendation','Wedding Show / Event','Email','Radio','Other']
+  },
+  func_statuses: {
+    label: 'Functions — Inquiry Statuses',
+    page: 'Functions & Events',
+    defaults: ['Pending','Details Shared','Confirmed','Cancelled','Postponed','Not Interested','Other']
+  },
+  voucher_types: {
+    label: 'Vouchers — Voucher Types',
+    page: 'Vouchers',
+    defaults: ['Hotel Stay','Dinner','High Tea','Spa','Discount','Complimentary','Other']
+  },
+  voucher_subtypes: {
+    label: 'Vouchers — Sub-types / Values',
+    page: 'Vouchers',
+    defaults: ['Room Only','Bed & Breakfast','Half Board','Full Board','Dinner for 2','Dinner for 1','High Tea for 1','High Tea for 2','High Tea for 4','High Tea Platter for 2','Spa Treatment (Free)','Spa Discount 20%','Spa Discount 25%','20% Off Total Bill','25% Off Total Bill','25% Off – Cloud Cafe','25% Off – Amber Poolside','Welcome Drink','Room Upgrade','Custom']
+  },
+  kiss_voucher_types: {
+    label: 'KissFM — Voucher Types',
+    page: 'Vouchers (KissFM)',
+    defaults: ['Hotel Stay','Dinner for 2','High Tea for 2','Spa Treatment','Discount Voucher']
+  },
+};
+
+// Load/save dropdowns from localStorage
+function getDDKey(k){ return 'cc_dd_'+k; }
+function getDDOptions(k){
+  try {
+    const stored = localStorage.getItem(getDDKey(k));
+    if(stored) return JSON.parse(stored);
+  } catch(e){}
+  return [...DD_DEFAULTS[k].defaults];
+}
+function saveDDOptions(k, arr){
+  localStorage.setItem(getDDKey(k), JSON.stringify(arr));
+}
+
+// ── Render all dropdown groups ───────────────────
+function renderDDManager(){
+  const container = document.getElementById('dd-manager');
+  container.innerHTML = Object.entries(DD_DEFAULTS).map(([k,def])=>{
+    const opts = getDDOptions(k);
+    return `<div class="dd-group">
+      <div class="dd-group-header">
+        <div>
+          <div class="dd-group-title">${def.label}</div>
+          <div class="dd-group-sub">Used in: <strong>${def.page}</strong> · ${opts.length} options</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="resetDD('${k}')">Reset to defaults</button>
+      </div>
+      <div class="dd-chips" id="chips-${k}">
+        ${opts.map((o,i)=>`<span class="dd-chip">${o}<button class="rm" onclick="removeDD('${k}',${i})" title="Remove">×</button></span>`).join('')}
+      </div>
+      <div class="dd-add-row">
+        <input type="text" id="inp-${k}" placeholder="Type new option and click Add…" onkeydown="if(event.key==='Enter')addDD('${k}')">
+        <button onclick="addDD('${k}')">+ Add</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addDD(k){
+  const inp = document.getElementById('inp-'+k);
+  const val = inp.value.trim();
+  if(!val){ toast('Type an option first.','e'); return; }
+  const opts = getDDOptions(k);
+  if(opts.includes(val)){ toast('Already exists.','i'); return; }
+  opts.push(val);
+  saveDDOptions(k, opts);
+  inp.value = '';
+  renderDDManager();
+  toast('"'+val+'" added to '+DD_DEFAULTS[k].label);
+}
+
+function removeDD(k, idx){
+  const opts = getDDOptions(k);
+  const removed = opts[idx];
+  opts.splice(idx,1);
+  saveDDOptions(k, opts);
+  renderDDManager();
+  toast('"'+removed+'" removed.');
+}
+
+function resetDD(k){
+  if(!confirm('Reset "'+DD_DEFAULTS[k].label+'" to defaults?\nThis will replace all your custom options.')) return;
+  localStorage.removeItem(getDDKey(k));
+  renderDDManager();
+  toast('Reset to defaults.');
+}
+
+// ── KissFM Quota ─────────────────────────────────
+function getKissQuota(){ return parseInt(localStorage.getItem('cc_kiss_quota'))||12; }
+function saveKissQuota(){
+  const v = parseInt(document.getElementById('kiss-quota-inp').value)||12;
+  if(v<1){ toast('Quota must be at least 1.','e'); return; }
+  localStorage.setItem('cc_kiss_quota', v);
+  document.getElementById('kiss-quota-display').textContent = v;
+  document.getElementById('kiss-quota-inp').value = v;
+  toast('KissFM quota updated to '+v+'/month ✓');
+}
+
+// ── Line Items ────────────────────────────────────
+function render(){
+  let liRows='';
+  (D.lineItems||[]).forEach((li,i)=>{
+    const mod=li.linked_module?({social:'🔗 Social Media',influencer:'🔗 Influencer',print:'🔗 Print/Suppliers'}[li.linked_module]||li.linked_module):'—';
+    liRows+=`<tr><td style="color:var(--text-2)">${i+1}</td><td><strong>${li.name}</strong></td><td><span class="pill pg">${li.category}</span></td><td style="font-size:11.5px">${mod}</td><td style="font-size:11px;color:var(--text-2)">${li.notes||'—'}</td><td><div style="display:flex;gap:5px"><button class="btn btn-edit btn-sm" onclick="editLI('${li.id}')">Edit</button><button class="btn btn-ghost btn-sm" onclick="delLI('${li.id}')">✕</button></div></td></tr>`;
+  });
+  document.getElementById('li-tbl').innerHTML=liRows||`<tr><td colspan="6"><div class="empty">No line items.</div></td></tr>`;
+
+  let sfRows='';
+  (D.sidebarFields||[]).forEach(f=>{
+    sfRows+=`<tr><td><strong>${f.label}</strong></td><td style="font-size:11.5px;color:var(--text-2)">${f.value||'—'}</td><td><span class="pill ${f.type==='link'?'pb':'pa'}">${f.type}</span></td><td><div style="display:flex;gap:5px"><button class="btn btn-edit btn-sm" onclick="editSBF('${f.id}')">Edit</button><button class="btn btn-ghost btn-sm" onclick="delSBF('${f.id}')">✕</button></div></td></tr>`;
+  });
+  document.getElementById('sbf-tbl').innerHTML=sfRows||`<tr><td colspan="4"><div class="empty">No quick-links.</div></td></tr>`;
+}
+
+function openLIModal(){
+  document.getElementById('li-t').textContent='Add Line Item';document.getElementById('li-save').textContent='Add';document.getElementById('li-id').value='';
+  ['li-name','li-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('li-sort').value='';document.getElementById('li-link').value='';openM('m-li');
+}
+function editLI(id){
+  const li=(D.lineItems||[]).find(l=>l.id==id);if(!li)return;
+  document.getElementById('li-t').textContent='Edit Line Item';document.getElementById('li-save').textContent='Update';document.getElementById('li-id').value=id;
+  document.getElementById('li-name').value=li.name||'';document.getElementById('li-cat').value=li.category||'Digital';
+  document.getElementById('li-link').value=li.linked_module||'';document.getElementById('li-sort').value=li.sort_order||'';
+  document.getElementById('li-notes').value=li.notes||'';openM('m-li');
+}
+async function saveLI(){
+  const eid=document.getElementById('li-id').value;
+  const name=document.getElementById('li-name').value.trim();
+  if(!name){toast('Name required.','e');return;}
+  const p={name,category:document.getElementById('li-cat').value,linked_module:document.getElementById('li-link').value||'',notes:document.getElementById('li-notes').value,sort_order:parseInt(document.getElementById('li-sort').value)||99};
+  showLoader('Saving...');
+  try{if(eid)await DB.update('LINE_ITEMS',eid,p);else await DB.add('LINE_ITEMS',p);const r=await DB.getAll();D=r;closeM('m-li');render();toast(eid?'Updated!':'Added!');}
+  catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+async function delLI(id){if(!confirm('Delete?'))return;showLoader('Deleting...');try{await DB.remove('LINE_ITEMS',id);const r=await DB.getAll();D=r;render();toast('Deleted.');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();}
+
+function openSBFModal(){
+  document.getElementById('sbf-t').textContent='Add Quick-Link';document.getElementById('sbf-save').textContent='Add';document.getElementById('sbf-id').value='';
+  ['sbf-lbl','sbf-val'].forEach(id=>document.getElementById(id).value='');openM('m-sbf');
+}
+function editSBF(id){
+  const f=(D.sidebarFields||[]).find(x=>x.id==id);if(!f)return;
+  document.getElementById('sbf-t').textContent='Edit Quick-Link';document.getElementById('sbf-save').textContent='Update';document.getElementById('sbf-id').value=id;
+  document.getElementById('sbf-lbl').value=f.label||'';document.getElementById('sbf-val').value=f.value||'';
+  document.getElementById('sbf-type').value=f.type||'link';openM('m-sbf');
+}
+async function saveSBF(){
+  const eid=document.getElementById('sbf-id').value;
+  const lbl=document.getElementById('sbf-lbl').value.trim();
+  if(!lbl){toast('Label required.','e');return;}
+  const p={label:lbl,value:document.getElementById('sbf-val').value,type:document.getElementById('sbf-type').value,sort_order:(D.sidebarFields||[]).length+1};
+  showLoader('Saving...');
+  try{if(eid)await DB.update('SIDEBAR_FIELDS',eid,p);else await DB.add('SIDEBAR_FIELDS',p);const r=await DB.getAll();D=r;closeM('m-sbf');render();toast(eid?'Updated!':'Added!');}
+  catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+async function delSBF(id){if(!confirm('Delete?'))return;showLoader('Deleting...');try{await DB.remove('SIDEBAR_FIELDS',id);const r=await DB.getAll();D=r;render();toast('Deleted.');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();}
+
+async function testAPI(){
+  const el=document.getElementById('api-result');
+  el.innerHTML='<span style="color:var(--text-2)">Testing…</span>';
+  try{await DB.getAll();el.innerHTML='<span style="color:var(--green)">✓ Connected!</span>';}
+  catch(e){el.innerHTML=`<span style="color:var(--danger)">✗ ${e.message}</span>`;}
+}
+async function exportData(){
+  showLoader('Exporting...');
+  try{const r=await DB.getAll();const blob=new Blob([JSON.stringify({exported:new Date().toISOString(),...r},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`cc-export-${new Date().toISOString().split('T')[0]}.json`;a.click();toast('Exported!');}
+  catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+
+async function load(){
+  showLoader('Loading Settings...');
+  try{
+    const r=await DB.getAll();D=r;
+    renderSidebar(r.user,r.sidebarFields);
+    render();
+    document.getElementById('api-url').value=API_URL;
+    const sheetId=localStorage.getItem('cc_sheet_id');
+    if(sheetId) document.getElementById('sheets-link').href=`https://docs.google.com/spreadsheets/d/${sheetId}`;
+  }catch(e){toast('Load failed: '+e.message,'e');}
+  hideLoader();
+  // Render dropdown manager and quota (no API needed)
+  renderDDManager();
+  const q=getKissQuota();
+  document.getElementById('kiss-quota-inp').value=q;
+  document.getElementById('kiss-quota-display').textContent=q;
+}
+load();
+</script>
+</body>
+</html>

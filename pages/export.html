@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Export Data — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<style>
+.exp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.exp-card{background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
+.exp-title{font-size:13px;font-weight:600;color:var(--text);}
+.exp-sub{font-size:11px;color:var(--text-2);flex:1;}
+.exp-done{font-size:10px;color:var(--green);display:none;}
+@media(max-width:900px){.exp-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.exp-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title">Export Data</div>
+      <div class="tb-sub">Download all your data as CSV files — open directly in Excel</div>
+    </div>
+    <div class="tb-r">
+      <span class="fy-chip" id="fy-chip">FY —</span>
+      <button class="btn btn-gold" onclick="downloadAll()">⬇ Download All</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="alert al-a" style="margin-bottom:18px">📥 All exports are UTF-8 encoded CSV files compatible with Excel, Google Sheets, and Numbers. Each file opens directly without formatting issues.</div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">Marketing Modules</div>
+    <div class="exp-grid">
+      <div class="exp-card"><div class="exp-title">📊 Budget Spends</div><div class="exp-sub">All spend entries across all line items</div><button class="btn btn-out btn-sm" onclick="dl('Spends','budget_spends')">Download CSV</button><span class="exp-done" id="done-Spends">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">📋 Monthly Budgets</div><div class="exp-sub">Budget targets per line item per month</div><button class="btn btn-out btn-sm" onclick="dl('MonthlyBudgets','monthly_budgets')">Download CSV</button><span class="exp-done" id="done-MonthlyBudgets">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">📱 Social Media Campaigns</div><div class="exp-sub">All social media ad spend entries with metrics</div><button class="btn btn-out btn-sm" onclick="dl('SocialSpends','social_campaigns')">Download CSV</button><span class="exp-done" id="done-SocialSpends">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">📈 Page Metrics</div><div class="exp-sub">Monthly follower counts and engagement rates</div><button class="btn btn-out btn-sm" onclick="dl('PageMetrics','page_metrics')">Download CSV</button><span class="exp-done" id="done-PageMetrics">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">🎥 Content Log</div><div class="exp-sub">All social media posts and performance data</div><button class="btn btn-out btn-sm" onclick="dl('ContentLog','content_log')">Download CSV</button><span class="exp-done" id="done-ContentLog">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">📧 Email Campaigns</div><div class="exp-sub">Email campaigns with open rates and revenue</div><button class="btn btn-out btn-sm" onclick="dl('EmailCampaigns','email_campaigns')">Download CSV</button><span class="exp-done" id="done-EmailCampaigns">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">📅 Events & Promos</div><div class="exp-sub">Marketing events and promotions tracker</div><button class="btn btn-out btn-sm" onclick="dl('Events','events_promos')">Download CSV</button><span class="exp-done" id="done-Events">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">🤝 Influencers</div><div class="exp-sub">Influencer roster with tier and contact info</div><button class="btn btn-out btn-sm" onclick="dl('Influencers','influencers')">Download CSV</button><span class="exp-done" id="done-Influencers">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">📸 Engagements</div><div class="exp-sub">Influencer engagement history and fees</div><button class="btn btn-out btn-sm" onclick="dl('Engagements','engagements')">Download CSV</button><span class="exp-done" id="done-Engagements">✓ Downloaded</span></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;margin-top:4px">Suppliers</div>
+    <div class="exp-grid">
+      <div class="exp-card"><div class="exp-title">🏢 Suppliers</div><div class="exp-sub">Supplier contact directory</div><button class="btn btn-out btn-sm" onclick="dl('Suppliers','suppliers')">Download CSV</button><span class="exp-done" id="done-Suppliers">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">🖨 Print Orders</div><div class="exp-sub">All print orders with quantities and costs</div><button class="btn btn-out btn-sm" onclick="dl('PrintOrders','print_orders')">Download CSV</button><span class="exp-done" id="done-PrintOrders">✓ Downloaded</span></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;margin-top:4px">Functions & Events</div>
+    <div class="exp-grid">
+      <div class="exp-card"><div class="exp-title">🎪 Function Inquiries</div><div class="exp-sub">All event inquiries with status and guest details</div><button class="btn btn-out btn-sm" onclick="dl('FuncInquiries','function_inquiries')">Download CSV</button><span class="exp-done" id="done-FuncInquiries">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">💰 Function Budgets</div><div class="exp-sub">Monthly food & beverage revenue budgets</div><button class="btn btn-out btn-sm" onclick="dl('FuncBudgets','function_budgets')">Download CSV</button><span class="exp-done" id="done-FuncBudgets">✓ Downloaded</span></div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;margin-top:4px">Vouchers</div>
+    <div class="exp-grid">
+      <div class="exp-card"><div class="exp-title">🎫 General Vouchers</div><div class="exp-sub">All issued hotel vouchers with redemption status</div><button class="btn btn-out btn-sm" onclick="dl('Vouchers','vouchers')">Download CSV</button><span class="exp-done" id="done-Vouchers">✓ Downloaded</span></div>
+      <div class="exp-card"><div class="exp-title">📻 KissFM Vouchers</div><div class="exp-sub">KissFM agreement vouchers with unique codes</div><button class="btn btn-out btn-sm" onclick="dl('KissFMVouchers','kissfm_vouchers')">Download CSV</button><span class="exp-done" id="done-KissFMVouchers">✓ Downloaded</span></div>
+    </div>
+
+    <!-- Sheet link -->
+    <div style="background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:16px 18px;margin-top:8px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">📊 Open Google Sheet Directly</div>
+      <p style="font-size:11.5px;color:var(--text-2);margin-bottom:12px">Enter your Google Spreadsheet ID once to save a direct link to your data sheet.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="text" id="sheet-id-inp" placeholder="Paste Spreadsheet ID here..." style="flex:1;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:Poppins,sans-serif;color:var(--text);outline:none;min-width:200px">
+        <button class="btn btn-out" onclick="saveSheetLink()">Save Link</button>
+        <button class="btn btn-gold" id="open-sheet-btn" style="display:none" onclick="openSheet()">Open Google Sheet ↗</button>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('export');
+requireAuth();
+document.getElementById('fy-chip').textContent = 'FY '+FY+'–'+String(FY+1).slice(-2);
+
+// Load saved sheet link
+const savedId = localStorage.getItem('cc_sheet_id');
+if(savedId){
+  document.getElementById('sheet-id-inp').value=savedId;
+  document.getElementById('open-sheet-btn').style.display='inline-flex';
+}
+function saveSheetLink(){
+  const v=document.getElementById('sheet-id-inp').value.trim();
+  if(!v){toast('Paste a valid Spreadsheet ID.','e');return;}
+  localStorage.setItem('cc_sheet_id',v);
+  document.getElementById('open-sheet-btn').style.display='inline-flex';
+  toast('Sheet link saved!');
+}
+function openSheet(){
+  const id=localStorage.getItem('cc_sheet_id');
+  if(id) window.open('https://docs.google.com/spreadsheets/d/'+id,'_blank');
+}
+
+async function dl(sheet, filename) {
+  showLoader('Exporting '+sheet+'...');
+  try {
+    const r = await api('GET',{action:'getSheet',token:DB.getToken(),sheet,fy:FY});
+    const rows = r.data||[];
+    if(!rows.length){toast('No data in '+sheet+' for FY '+FY,'i');hideLoader();return;}
+    // Fix date fields
+    const fixed = rows.map(row=>{
+      const o={};
+      Object.entries(row).forEach(([k,v])=>{
+        o[k]= (k.includes('date')||k.includes('Date')) ? fmtDate(v)||v : v;
+      });
+      return o;
+    });
+    const headers=Object.keys(fixed[0]);
+    const csv='\uFEFF'+headers.join(',')+'\n'+fixed.map(r=>headers.map(h=>{
+      const v=String(r[h]||'').replace(/"/g,'""');
+      return v.includes(',')||v.includes('\n')||v.includes('"')?`"${v}"`:v;
+    }).join(',')).join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`${filename}_FY${FY}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    const doneEl=document.getElementById('done-'+sheet);
+    if(doneEl){doneEl.style.display='block'; setTimeout(()=>doneEl.style.display='none',4000);}
+    toast(sheet+' exported ('+rows.length+' rows)');
+  } catch(e){ toast('Export failed: '+e.message,'e'); }
+  hideLoader();
+}
+
+const ALL_SHEETS=[
+  ['Spends','budget_spends'],['MonthlyBudgets','monthly_budgets'],
+  ['SocialSpends','social_campaigns'],['PageMetrics','page_metrics'],
+  ['ContentLog','content_log'],['EmailCampaigns','email_campaigns'],
+  ['Events','events_promos'],['Influencers','influencers'],['Engagements','engagements'],
+  ['Suppliers','suppliers'],['PrintOrders','print_orders'],
+  ['FuncInquiries','function_inquiries'],['FuncBudgets','function_budgets'],
+  ['Vouchers','vouchers'],['KissFMVouchers','kissfm_vouchers'],
+];
+async function downloadAll(){
+  toast('Downloading all '+ALL_SHEETS.length+' files…','i');
+  for(const [sheet,fn] of ALL_SHEETS){ await dl(sheet,fn); await new Promise(r=>setTimeout(r,700)); }
+  toast('All files downloaded!');
+}
+
+async function load(){
+  showLoader('Loading...');
+  try{ const r=await DB.getAll(); renderSidebar(r.user,r.sidebarFields); }catch(e){}
+  hideLoader();
+}
+load();
+</script>
+</body>
+</html>

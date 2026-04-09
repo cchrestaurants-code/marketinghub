@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Events & Promotions — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script src="../js/reports.js"></script>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div><div class="tb-title">Events &amp; Promotions</div><div class="tb-sub">Special events · Pax tracking · ROI · Campaign linking</div></div>
+    <div class="tb-r">
+      <span class="fy-chip">FY <span id="fy-chip"></span></span>
+      <button class="btn btn-out btn-sm" onclick="downloadAllEventsExcel()">⬇ Excel</button>
+      <button class="btn btn-out" onclick="openEvModal()">+ Add Event</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="m-tabs" id="ev-tabs"></div>
+    <div class="kpi-row k4" id="ev-kpis"></div>
+
+    <!-- Charts -->
+    <div class="ch-row ch-2" id="ev-charts">
+      <div class="ch-card"><div class="ch-title">Revenue — Target vs Actual</div><div class="ch-sub">Per event this period</div><canvas id="ch-rev"></canvas></div>
+      <div class="ch-card"><div class="ch-title">PAX — Target vs Actual</div><div class="ch-sub">Attendance performance</div><canvas id="ch-pax"></canvas></div>
+    </div>
+
+    <!-- Events table -->
+    <div class="sec"><div class="sec-t">Events</div></div>
+    <div class="tc overflow-x">
+      <table>
+        <thead><tr>
+          <th>Event</th><th>Type</th><th>Duration</th><th>Date</th><th>Status</th>
+          <th>PAX T/A</th><th>Rev Target</th><th>Rev Actual</th><th>Ad Spend</th>
+          <th>ROI</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="ev-tbl"></tbody>
+      </table>
+    </div>
+
+    <!-- Linked ad spend table -->
+    <div class="sec"><div class="sec-t">Linked Social Media Campaigns</div>
+      <span class="pill pb" style="font-size:10px">Auto-pulls from Social Media using campaign name</span>
+    </div>
+    <div class="tc overflow-x">
+      <table>
+        <thead><tr><th>Event</th><th>Campaign</th><th>Platform</th><th>Date</th><th>Objective</th><th>Spend (LKR)</th><th>Impressions</th><th>Reach</th></tr></thead>
+        <tbody id="adspend-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- EVENT MODAL -->
+<div class="overlay" id="m-ev">
+  <div class="modal wide">
+    <div class="modal-hd"><div class="modal-t" id="ev-modal-t">Add Event</div><button class="modal-x" onclick="closeM('m-ev')">×</button></div>
+    <div class="modal-bd">
+      <div class="modal-section">
+        <div class="modal-section-title">📅 Event Details</div>
+        <div class="fg">
+          <div class="fr"><label>Event Name <span style="color:var(--red-brand)">*</span></label>
+            <input type="text" id="ev-name" placeholder="e.g. Iftar High Tea, Mothers Day Brunch">
+          </div>
+          <div class="fr"><label>Event Type</label>
+            <select id="ev-type"><option>Promotion</option><option>High Tea</option><option>Seasonal Event</option><option>Festival</option><option>Corporate</option><option>Wedding</option><option>Other</option></select>
+          </div>
+        </div>
+        <div class="fg3">
+          <div class="fr"><label>Duration Type</label>
+            <select id="ev-duration">
+              <option value="Single Day">Single Day</option>
+              <option value="Multi-Day">Multi-Day</option>
+              <option value="Weekly">Weekly (1 week)</option>
+              <option value="Monthly">Monthly (full month)</option>
+              <option value="Custom">Custom period</option>
+            </select>
+          </div>
+          <div class="fr"><label>Start Date</label><input type="date" id="ev-start"></div>
+          <div class="fr"><label>End Date <span style="font-size:9px;color:var(--text-3)">(same as start for 1 day)</span></label><input type="date" id="ev-end"></div>
+        </div>
+        <div class="fg">
+          <div class="fr"><label>Status</label>
+            <select id="ev-status"><option>Planning</option><option>Active</option><option>Completed</option><option>Cancelled</option></select>
+          </div>
+          <div class="fr"><label>FY Month (for reporting)</label>
+            <select id="ev-month"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">👥 PAX & Revenue</div>
+        <div class="fg">
+          <div class="fr"><label>PAX Target</label><input type="number" id="ev-paxt" placeholder="0" oninput="autoCalcEvent()"></div>
+          <div class="fr"><label>PAX Actual</label><input type="number" id="ev-paxa" placeholder="0" oninput="autoCalcEvent()"></div>
+        </div>
+        <div class="fg">
+          <div class="fr"><label>Revenue Target (LKR)</label><input type="number" id="ev-revt" placeholder="0" oninput="autoCalcEvent()"></div>
+          <div class="fr"><label>Revenue Actual (LKR)</label><input type="number" id="ev-reva" placeholder="0" oninput="autoCalcEvent()"></div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">💰 Costs & ROI <span style="font-size:9px;color:var(--text-2);font-weight:400">(auto-calculated)</span></div>
+        <div class="fg3">
+          <div class="fr"><label>Other Costs (LKR)</label><input type="number" id="ev-other" placeholder="0" oninput="autoCalcEvent()"></div>
+          <div class="fr"><label>Total Cost (LKR)</label><input type="number" id="ev-totalcost" placeholder="Auto from linked campaigns + other" readonly style="opacity:.65"></div>
+          <div class="fr"><label>ROI %</label><input type="number" id="ev-roi" placeholder="Auto-calculated" readonly style="opacity:.65"></div>
+        </div>
+        <div class="fg">
+          <div class="fr"><label>Cost Per PAX (LKR)</label><input type="number" id="ev-cpp" placeholder="Auto-calculated" readonly style="opacity:.65"></div>
+          <div class="fr"><label>PAX Achievement %</label><input type="number" id="ev-paxpct" placeholder="Auto-calculated" readonly style="opacity:.65"></div>
+        </div>
+        <div style="font-size:10.5px;color:var(--text-2);margin-top:4px">💡 Ad spend is pulled automatically from linked Social Media campaigns. Only enter "Other Costs" manually.</div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">🔗 Social Media Campaign Link</div>
+        <div class="fr">
+          <label>Campaign Name(s) to Link <span style="color:var(--red-brand)">*</span></label>
+          <input type="text" id="ev-keywords" placeholder="e.g. Iftar High Tea" list="campaign-suggestions">
+          <datalist id="campaign-suggestions"></datalist>
+          <div style="font-size:10px;color:var(--text-2);margin-top:4px">Enter the <strong>exact campaign name</strong> as it appears in Social Media Ads. Use the same name there to link automatically. Separate multiple with commas.</div>
+        </div>
+        <div id="ev-linked-preview" style="margin-top:8px"></div>
+      </div>
+
+      <div class="fr"><label>Notes</label><textarea id="ev-notes" placeholder="Event notes, observations..."></textarea></div>
+      <input type="hidden" id="ev-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-ev')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveEv()" id="ev-save">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT REPORT MODAL (download options) -->
+<div class="overlay" id="m-ev-report">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="ev-report-name">Event Report</div><button class="modal-x" onclick="closeM('m-ev-report')">×</button></div>
+    <div class="modal-bd">
+      <p style="font-size:12px;color:var(--text-2);margin-bottom:16px">Download a performance report for this event.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-gold" onclick="dlEventPDF()">📄 Download PDF Report</button>
+        <button class="btn btn-out" onclick="dlEventExcel()">📊 Download Excel Report</button>
+      </div>
+      <div style="margin-top:14px;font-size:10.5px;color:var(--text-2)">
+        <strong>PDF:</strong> Visual report with charts, KPIs and linked campaign table. Print or save as PDF.<br>
+        <strong>Excel:</strong> Raw data spreadsheet you can share with your team or GM.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('events');
+requireAuth();
+document.getElementById('fy-chip').textContent = `${FY}–${String(FY+1).slice(-2)}`;
+
+let D = {events:[]}, socialSpends = [], activeEv = null;
+let evFilter = 'all';
+const CI = {};
+function kc(id){if(CI[id]){CI[id].destroy();delete CI[id];}}
+
+async function load(){
+  showLoader('Loading Events...');
+  try{
+    const r = await DB.getAll(); D = r;
+    socialSpends = r.socialSpends||[];
+    renderSidebar(r.user, r.sidebarFields);
+    buildEvTabs();
+    render();
+    populateCampaignSuggestions();
+  }catch(e){toast('Load failed: '+e.message,'e');}
+  hideLoader();
+}
+
+function buildEvTabs(){
+  const evs = D.events||[];
+  document.getElementById('ev-tabs').innerHTML =
+    `<div class="m-tab ${evFilter==='all'?'active':''}" onclick="setEF('all')">All</div>` +
+    FY_MONTHS.map((_,i)=>{
+      const has = evs.some(e=>e.fy_month==i);
+      return `<div class="m-tab ${evFilter==i?'active':''} ${has&&evFilter!=i?'hd':''}" onclick="setEF(${i})">${FY_SHORT[i]}</div>`;
+    }).join('');
+}
+function setEF(v){ evFilter=v; buildEvTabs(); render(); }
+
+// Get linked social spend — matches by exact campaign name (case-insensitive)
+function getLinkedSpend(ev){
+  if(!ev.keywords) return [];
+  const kws = ev.keywords.split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+  return socialSpends.filter(s=>kws.some(kw=>s.name&&s.name.toLowerCase()===kw));
+}
+
+function render(){
+  const all  = D.events||[];
+  const evs  = evFilter==='all' ? all : all.filter(e=>e.fy_month==evFilter);
+  const comp = evs.filter(e=>e.status==='Completed');
+  const totRev = comp.reduce((a,e)=>a+Number(e.revenue_actual||0),0);
+  const totSpend = evs.reduce((a,e)=>a+getLinkedSpend(e).reduce((b,s)=>b+Number(s.amount||0),0)+Number(e.other_cost||0),0);
+  const overallROI = totSpend>0?((totRev-totSpend)/totSpend*100).toFixed(1):0;
+
+  document.getElementById('ev-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">Total Events</div><div class="kpi-val">${evs.length}</div><div class="kpi-sub">${evFilter==='all'?'Full FY':fyLabel(evFilter)}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Completed</div><div class="kpi-val">${comp.length}</div><div class="kpi-sub">${evs.filter(e=>e.status==='Active').length} active</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Revenue Actual</div><div class="kpi-val">${fmtK(totRev)}</div><div class="kpi-sub">completed events</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Overall ROI</div><div class="kpi-val">${overallROI}%</div><div class="kpi-sub">revenue vs total cost</div></div>`;
+
+  // Charts
+  kc('ch-rev'); kc('ch-pax');
+  if(evs.length){
+    const labels = evs.map(e=>(e.name||'').length>14?(e.name||'').slice(0,13)+'…':e.name||'');
+    const opts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10,family:'Poppins'},color:'#8a8682'}}},scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#8a8682',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8a8682',font:{size:9}},grid:{display:false}}}};
+    CI['ch-rev']=new Chart(document.getElementById('ch-rev'),{type:'bar',data:{labels,datasets:[
+      {label:'Target',data:evs.map(e=>Number(e.revenue_target||0)),backgroundColor:'rgba(200,16,46,.2)',borderColor:'#C8102E',borderWidth:1.5,borderRadius:3},
+      {label:'Actual',data:evs.map(e=>Number(e.revenue_actual||0)),backgroundColor:'rgba(61,184,112,.5)',borderColor:'#3db870',borderWidth:1.5,borderRadius:3},
+    ]},options:opts});
+    CI['ch-pax']=new Chart(document.getElementById('ch-pax'),{type:'bar',data:{labels,datasets:[
+      {label:'Target',data:evs.map(e=>Number(e.pax_target||0)),backgroundColor:'rgba(74,136,216,.2)',borderColor:'#4a88d8',borderWidth:1.5,borderRadius:3},
+      {label:'Actual',data:evs.map(e=>Number(e.pax_actual||0)),backgroundColor:'rgba(74,136,216,.55)',borderColor:'#4a88d8',borderWidth:1.5,borderRadius:3},
+    ]},options:{...opts,scales:{...opts.scales,y:{ticks:{color:'#8a8682',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  }
+
+  // Events table
+  const sc={'Planning':'pb','Active':'bgo','Completed':'pgr','Cancelled':'pr'};
+  const durIcon={'Single Day':'1️⃣','Multi-Day':'📅','Weekly':'🗓','Monthly':'📆','Custom':'🗓'};
+  let rows='';
+  evs.forEach(e=>{
+    const linked = getLinkedSpend(e);
+    const adS  = linked.reduce((a,s)=>a+Number(s.amount||0),0);
+    const totC = adS+Number(e.other_cost||0);
+    const roi  = totC>0?((Number(e.revenue_actual||0)-totC)/totC*100).toFixed(0)+'%':'—';
+    const paxT = Number(e.pax_target||0), paxA = Number(e.pax_actual||0);
+    const dur  = e.duration_type||'Single Day';
+    const dateRange = e.end_date && e.end_date!==e.start_date ? `${fmtDate(e.start_date)||'—'} → ${fmtDate(e.end_date)}` : fmtDate(e.start_date)||fmtDate(e.date)||'—';
+    rows+=`<tr>
+      <td><strong>${e.name||'—'}</strong></td>
+      <td><span class="pill pg">${e.type||e.ev_type||'—'}</span></td>
+      <td style="font-size:10.5px">${durIcon[dur]||''} ${dur}</td>
+      <td style="font-size:11px">${dateRange}</td>
+      <td><span class="pill ${sc[e.status]||'pb'}">${e.status||'—'}</span></td>
+      <td class="mono">${paxA}/${paxT}</td>
+      <td class="mono">${fmt(e.revenue_target)}</td>
+      <td class="mono" style="color:var(--green);font-weight:600">${fmt(e.revenue_actual)}</td>
+      <td class="mono">${fmt(adS)}<br><span style="font-size:9px;color:var(--text-3)">${linked.length} campaign${linked.length!==1?'s':''}</span></td>
+      <td class="mono" style="font-weight:600;color:${roi!=='—'&&Number(roi)>0?'var(--green)':'var(--red-brand)'}">${roi}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-edit btn-sm" onclick="editEv('${e.id}')">Edit</button>
+          <button class="btn btn-out btn-sm" onclick="openEventReport('${e.id}')">⬇</button>
+          <button class="btn btn-ghost btn-sm" onclick="delEv('${e.id}')">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  document.getElementById('ev-tbl').innerHTML = rows||`<tr><td colspan="11"><div class="empty"><div class="ei">📅</div>No events yet. Click "+ Add Event" to get started.</div></td></tr>`;
+
+  // Linked spend table
+  let adRows='';
+  evs.forEach(e=>{
+    getLinkedSpend(e).forEach(s=>{
+      adRows+=`<tr><td style="font-weight:500">${e.name||'—'}</td><td>${s.name||'—'}</td><td><span class="pill pb">${s.platform||'—'}</span></td><td>${fmtDate(s.date)||'—'}</td><td style="font-size:11px">${s.objective||'—'}</td><td class="mono" style="font-weight:600">${fmt(s.amount)}</td><td class="mono">${s.impressions?Number(s.impressions).toLocaleString():'—'}</td><td class="mono">${s.reach?Number(s.reach).toLocaleString():'—'}</td></tr>`;
+    });
+  });
+  document.getElementById('adspend-tbl').innerHTML = adRows||`<tr><td colspan="8"><div class="empty">No linked campaigns. Add a campaign name when creating an event — it must exactly match the campaign name in Social Media Ads.</div></td></tr>`;
+}
+
+// Auto-calculate ROI, CPP, PAX% as user types
+function autoCalcEvent(){
+  const paxt = parseFloat(document.getElementById('ev-paxt').value)||0;
+  const paxa = parseFloat(document.getElementById('ev-paxa').value)||0;
+  const revt = parseFloat(document.getElementById('ev-revt').value)||0;
+  const reva = parseFloat(document.getElementById('ev-reva').value)||0;
+  const other= parseFloat(document.getElementById('ev-other').value)||0;
+
+  // Get linked ad spend from current keywords
+  const kw  = (document.getElementById('ev-keywords').value||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+  const adS = socialSpends.filter(s=>kw.some(k=>s.name&&s.name.toLowerCase()===k)).reduce((a,s)=>a+Number(s.amount||0),0);
+  const totC = adS + other;
+  const roi  = totC>0?((reva-totC)/totC*100).toFixed(1):'';
+  const cpp  = paxa>0?(totC/paxa).toFixed(0):'';
+  const paxpct = paxt>0?(paxa/paxt*100).toFixed(1):'';
+
+  document.getElementById('ev-totalcost').value = totC||'';
+  document.getElementById('ev-roi').value = roi;
+  document.getElementById('ev-cpp').value = cpp;
+  document.getElementById('ev-paxpct').value = paxpct;
+
+  // Show linked campaign preview
+  if(kw.length){
+    const linked = socialSpends.filter(s=>kw.some(k=>s.name&&s.name.toLowerCase()===k));
+    document.getElementById('ev-linked-preview').innerHTML = linked.length
+      ? `<div class="alert al-g">✓ ${linked.length} campaign${linked.length!==1?'s':''} linked — Total ad spend: <strong>${fmt(adS)}</strong></div>`
+      : `<div class="alert al-a">⚠ No Social Media campaigns found with that exact name. Check the name matches exactly in Social Media Ads.</div>`;
+  } else {
+    document.getElementById('ev-linked-preview').innerHTML='';
+  }
+}
+
+// Populate campaign name suggestions from Social Media data
+function populateCampaignSuggestions(){
+  const names = [...new Set((socialSpends||[]).map(s=>s.name).filter(Boolean))];
+  document.getElementById('campaign-suggestions').innerHTML = names.map(n=>`<option value="${n}">`).join('');
+}
+
+// Modal open/close
+function openEvModal(){
+  clearEvModal();
+  document.getElementById('ev-modal-t').textContent='Add Event';
+  document.getElementById('ev-save').textContent='Save Event';
+  document.getElementById('ev-month').innerHTML = FY_MONTHS.map((_,i)=>`<option value="${i}" ${i===fyIdxNow()?'selected':''}>${fyLabel(i)}</option>`).join('');
+  document.getElementById('ev-start').value = new Date().toISOString().split('T')[0];
+  openM('m-ev');
+}
+function editEv(id){
+  const e=(D.events||[]).find(x=>x.id==id);if(!e)return;
+  clearEvModal();
+  document.getElementById('ev-modal-t').textContent='Edit Event';
+  document.getElementById('ev-save').textContent='Update Event';
+  document.getElementById('ev-id').value=id;
+  document.getElementById('ev-month').innerHTML=FY_MONTHS.map((_,i)=>`<option value="${i}" ${i==e.fy_month?'selected':''}>${fyLabel(i)}</option>`).join('');
+  document.getElementById('ev-name').value=e.name||'';
+  document.getElementById('ev-type').value=e.type||e.ev_type||'Promotion';
+  document.getElementById('ev-duration').value=e.duration_type||'Single Day';
+  document.getElementById('ev-start').value=fmtDate(e.start_date||e.date)||'';
+  document.getElementById('ev-end').value=fmtDate(e.end_date||e.date)||'';
+  document.getElementById('ev-status').value=e.status||'Planning';
+  document.getElementById('ev-paxt').value=e.pax_target||'';
+  document.getElementById('ev-paxa').value=e.pax_actual||'';
+  document.getElementById('ev-revt').value=e.revenue_target||'';
+  document.getElementById('ev-reva').value=e.revenue_actual||'';
+  document.getElementById('ev-other').value=e.other_cost||'';
+  document.getElementById('ev-keywords').value=e.keywords||'';
+  document.getElementById('ev-notes').value=e.notes||'';
+  autoCalcEvent();
+  openM('m-ev');
+}
+function clearEvModal(){
+  document.getElementById('ev-id').value='';
+  ['ev-name','ev-paxt','ev-paxa','ev-revt','ev-reva','ev-other','ev-totalcost','ev-roi','ev-cpp','ev-paxpct','ev-keywords','ev-notes','ev-start','ev-end'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('ev-linked-preview').innerHTML='';
+}
+async function saveEv(){
+  const eid=document.getElementById('ev-id').value;
+  const name=document.getElementById('ev-name').value.trim();
+  if(!name){toast('Event name required.','e');return;}
+  const paxt=parseFloat(document.getElementById('ev-paxt').value)||0;
+  const paxa=parseFloat(document.getElementById('ev-paxa').value)||0;
+  const revt=parseFloat(document.getElementById('ev-revt').value)||0;
+  const reva=parseFloat(document.getElementById('ev-reva').value)||0;
+  const other=parseFloat(document.getElementById('ev-other').value)||0;
+  const startDate=document.getElementById('ev-start').value;
+  const kw=(document.getElementById('ev-keywords').value||'').split(',').map(k=>k.trim().toLowerCase()).filter(Boolean);
+  const adS=socialSpends.filter(s=>kw.some(k=>s.name&&s.name.toLowerCase()===k)).reduce((a,s)=>a+Number(s.amount||0),0);
+  const totC=adS+other;
+  const fyMo=parseInt(document.getElementById('ev-month').value);
+  const p={
+    fy:FY, fy_month:fyMo,
+    name, type:document.getElementById('ev-type').value,
+    duration_type:document.getElementById('ev-duration').value,
+    start_date:startDate, end_date:document.getElementById('ev-end').value,
+    date:startDate, // keep for backward compat
+    status:document.getElementById('ev-status').value,
+    pax_target:paxt, pax_actual:paxa,
+    pax_pct:paxt>0?(paxa/paxt*100).toFixed(1):0,
+    revenue_target:revt, revenue_actual:reva,
+    rev_pct:revt>0?(reva/revt*100).toFixed(1):0,
+    ad_spend:adS, other_cost:other, total_cost:totC,
+    cost_per_pax:paxa>0?(totC/paxa).toFixed(0):0,
+    roi:totC>0?((reva-totC)/totC*100).toFixed(1):0,
+    keywords:document.getElementById('ev-keywords').value,
+    notes:document.getElementById('ev-notes').value
+  };
+  showLoader('Saving...');
+  try{
+    if(eid) await DB.update('EVENTS',eid,p); else await DB.add('EVENTS',p);
+    const r=await DB.getAll(); D=r; socialSpends=r.socialSpends||[];
+    closeM('m-ev'); buildEvTabs(); render();
+    toast(eid?'Event updated!':'Event saved!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delEv(id){
+  if(!confirm('Delete this event?'))return;
+  showLoader('Deleting...');
+  try{await DB.remove('EVENTS',id);const r=await DB.getAll();D=r;socialSpends=r.socialSpends||[];buildEvTabs();render();toast('Deleted.');}
+  catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+
+// ── DOWNLOADS ─────────────────────────────────────────────
+function openEventReport(id){
+  activeEv = (D.events||[]).find(x=>x.id==id); if(!activeEv)return;
+  document.getElementById('ev-report-name').textContent = activeEv.name||'Event Report';
+  openM('m-ev-report');
+}
+function dlEventPDF(){
+  if(!activeEv) return;
+  closeM('m-ev-report');
+  const linked = getLinkedSpend(activeEv);
+  const { html } = buildEventReport(activeEv, linked, FY);
+  printReport(html, activeEv.name+' — Performance Report');
+}
+function dlEventExcel(){
+  if(!activeEv) return;
+  closeM('m-ev-report');
+  const e = activeEv;
+  const linked = getLinkedSpend(e);
+  const adS = linked.reduce((a,s)=>a+Number(s.amount||0),0);
+  const totC = adS+Number(e.other_cost||0);
+  const summary = [
+    ['Event Performance Report — Colombo Court Hotel & Spa'],
+    ['Generated', rDate()],[''],
+    ['EVENT DETAILS'],
+    ['Event Name', e.name||'—'],
+    ['Type', e.type||'—'],
+    ['Duration', e.duration_type||'—'],
+    ['Start Date', fmtDate(e.start_date||e.date)||'—'],
+    ['End Date', fmtDate(e.end_date||e.date)||'—'],
+    ['Status', e.status||'—'],[''],
+    ['PERFORMANCE'],
+    ['Metric','Target','Actual','Achievement %'],
+    ['PAX', e.pax_target||0, e.pax_actual||0, e.pax_target>0?((e.pax_actual/e.pax_target)*100).toFixed(1)+'%':'—'],
+    ['Revenue (LKR)', e.revenue_target||0, e.revenue_actual||0, e.revenue_target>0?((e.revenue_actual/e.revenue_target)*100).toFixed(1)+'%':'—'],
+    [''],['COSTS'],
+    ['Ad Spend (LKR)', adS],
+    ['Other Costs (LKR)', e.other_cost||0],
+    ['Total Cost (LKR)', totC],
+    ['ROI %', totC>0?(((e.revenue_actual||0)-totC)/totC*100).toFixed(1)+'%':'—'],
+    ['Cost Per PAX', (e.pax_actual||0)>0?'LKR '+(totC/e.pax_actual).toFixed(0):'—'],
+  ];
+  const adData = [['Campaign','Platform','Date','Objective','Spend (LKR)','Impressions','Reach'],...linked.map(s=>[s.name||'',s.platform||'',fmtDate(s.date)||'',s.objective||'',Number(s.amount||0),Number(s.impressions||0),Number(s.reach||0)])];
+  downloadExcel([
+    {name:'Summary', data:summary, colWidths:[22,18,18,16]},
+    {name:'Linked Campaigns', data:adData, colWidths:[24,12,12,16,14,14,14]},
+  ], (e.name||'event').replace(/[^a-z0-9]/gi,'_')+'_performance.xlsx');
+}
+function downloadAllEventsExcel(){
+  const evs = D.events||[];
+  if(!evs.length){toast('No events to export.','i');return;}
+  const headers = ['Event','Type','Duration','Start Date','End Date','Status','PAX Target','PAX Actual','PAX %','Rev Target','Rev Actual','Rev %','Ad Spend','Other Cost','Total Cost','ROI %','CPP','Campaign Keywords','Notes'];
+  const rows = evs.map(e=>{
+    const linked = getLinkedSpend(e);
+    const adS = linked.reduce((a,s)=>a+Number(s.amount||0),0);
+    const totC = adS+Number(e.other_cost||0);
+    return [e.name||'',e.type||'',e.duration_type||'',fmtDate(e.start_date||e.date)||'',fmtDate(e.end_date||e.date)||'',e.status||'',Number(e.pax_target||0),Number(e.pax_actual||0),Number(e.pax_pct||0)+'%',Number(e.revenue_target||0),Number(e.revenue_actual||0),Number(e.rev_pct||0)+'%',adS,Number(e.other_cost||0),totC,totC>0?(((e.revenue_actual||0)-totC)/totC*100).toFixed(1)+'%':'—',(e.pax_actual||0)>0?(totC/(e.pax_actual)).toFixed(0):'—',e.keywords||'',e.notes||''];
+  });
+  downloadExcel([{name:'Events',data:[headers,...rows],colWidths:[22,12,12,12,12,10,8,8,8,14,14,8,12,12,12,8,10,20,20]}],`events_FY${FY}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+load();
+</script>
+</body>
+</html>

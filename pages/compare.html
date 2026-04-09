@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Year Comparison — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script src="../js/reports.js"></script>
+<style>
+.fy-selector{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:14px 18px;margin-bottom:18px;}
+.fy-selector label{font-size:10px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;display:block;}
+.fy-selector select{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--text);font-family:'Poppins',sans-serif;outline:none;min-width:130px;}
+.fy-selector select:focus{border-color:var(--red-brand);}
+.vs-divider{font-size:18px;font-weight:700;color:var(--text-3);align-self:flex-end;padding-bottom:7px;}
+.fy-a-color{color:#C8102E;} .fy-b-color{color:#4a88d8;}
+.growth-pos{color:var(--green);font-weight:600;}
+.growth-neg{color:var(--danger);font-weight:600;}
+.growth-neu{color:var(--text-2);}
+.compare-kpi{background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:14px 16px;}
+.compare-kpi .ck-lbl{font-size:9.5px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
+.compare-kpi .ck-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);}
+.compare-kpi .ck-row:last-child{border:none;}
+.compare-kpi .ck-fy{font-size:13px;font-weight:700;}
+.compare-kpi .ck-growth{font-size:11px;font-weight:500;padding:2px 7px;border-radius:10px;}
+.mode-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:7px;overflow:hidden;width:fit-content;margin-bottom:16px;}
+.mode-tab{padding:7px 16px;font-size:11.5px;font-weight:500;cursor:pointer;color:var(--text-2);background:transparent;border:none;font-family:'Poppins',sans-serif;transition:all .14s;}
+.mode-tab.active{background:var(--red-brand);color:#fff;}
+.mode-tab:hover:not(.active){background:rgba(200,16,46,.08);color:var(--red-light);}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title">Year Comparison</div>
+      <div class="tb-sub">Compare performance across two financial years — trends, growth, best months</div>
+    </div>
+    <div class="tb-r">
+      <button class="btn btn-gold" onclick="runComparison()">▶ Run Comparison</button>
+    </div>
+  </header>
+  <div class="content">
+
+    <!-- FY Selector -->
+    <div class="fy-selector">
+      <div>
+        <label>Financial Year A <span class="fy-a-color">●</span></label>
+        <select id="fy-a">
+          <option value="2025">FY 2025–26</option>
+          <option value="2026" selected>FY 2026–27</option>
+          <option value="2027">FY 2027–28</option>
+          <option value="2028">FY 2028–29</option>
+          <option value="2029">FY 2029–30</option>
+        </select>
+      </div>
+      <div class="vs-divider">VS</div>
+      <div>
+        <label>Financial Year B <span class="fy-b-color">●</span></label>
+        <select id="fy-b">
+          <option value="2025" selected>FY 2025–26</option>
+          <option value="2026">FY 2026–27</option>
+          <option value="2027">FY 2027–28</option>
+          <option value="2028">FY 2028–29</option>
+          <option value="2029">FY 2029–30</option>
+        </select>
+      </div>
+      <div style="align-self:flex-end">
+        <button class="btn btn-gold" onclick="runComparison()">Compare →</button>
+      </div>
+      <div style="margin-left:auto;font-size:11px;color:var(--text-2);max-width:260px;align-self:center">
+        Select two financial years to compare. Data is pulled from your Google Sheet for both years simultaneously.
+      </div>
+    </div>
+
+    <!-- Mode tabs: Annual / Monthly -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="mt-annual"  onclick="setMode('annual')">📅 Annual Summary</button>
+      <button class="mode-tab" id="mt-monthly" onclick="setMode('monthly')">📆 Month by Month</button>
+      <button class="mode-tab" id="mt-vsmonth" onclick="setMode('vsmonth')">🆚 Month vs Month</button>
+    </div>
+
+    <!-- Loading state -->
+    <div id="comp-loading" style="display:none" class="alert al-a">⏳ Loading comparison data…</div>
+    <div id="comp-empty" style="padding:48px;text-align:center;color:var(--text-2);font-size:13px">
+      <div style="font-size:32px;margin-bottom:12px;opacity:.3">📊</div>
+      Select two financial years above and click <strong>Compare →</strong> to see the analysis.
+    </div>
+
+    <!-- ANNUAL MODE -->
+    <div id="mode-annual" style="display:none">
+      <div id="annual-kpi-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px"></div>
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Social Media Ad Spend</div>
+          <div class="ch-sub">Monthly spend comparison — <span class="fy-a-color" id="ch-ss-la">FY A</span> vs <span class="fy-b-color" id="ch-ss-lb">FY B</span></div>
+          <canvas id="ch-social-spend"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Function Revenue</div>
+          <div class="ch-sub">Monthly confirmed event revenue — food + beverage combined</div>
+          <canvas id="ch-func-rev"></canvas>
+        </div>
+      </div>
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Function Inquiries vs Confirmed</div>
+          <div class="ch-sub">Inquiries received and events confirmed per month</div>
+          <canvas id="ch-inq-comp"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Email Campaign Performance</div>
+          <div class="ch-sub">Emails sent, open rate trend per month</div>
+          <canvas id="ch-email-comp"></canvas>
+        </div>
+      </div>
+      <div class="ch-row" style="grid-template-columns:1fr">
+        <div class="ch-card">
+          <div class="ch-title">Vouchers Issued — Monthly</div>
+          <div class="ch-sub">Total vouchers issued per month (general + KissFM combined)</div>
+          <canvas id="ch-voucher-comp" style="max-height:150px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTHLY MODE -->
+    <div id="mode-monthly" style="display:none">
+      <div style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--text-2)">Select Month:</span>
+        <div class="m-tabs" id="comp-month-tabs" style="margin-bottom:0"></div>
+      </div>
+      <div id="monthly-kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px"></div>
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Function Inquiries This Month</div>
+          <div class="ch-sub">Breakdown by event type for selected month</div>
+          <canvas id="ch-m-inq"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Inquiry Sources This Month</div>
+          <div class="ch-sub">How guests found you — by source</div>
+          <canvas id="ch-m-src"></canvas>
+        </div>
+      </div>
+      <!-- Monthly comparison table -->
+      <div class="tc">
+        <div class="tc-head"><div class="tc-title">Month-by-Month Comparison Table</div></div>
+        <div class="overflow-x">
+          <table>
+            <thead><tr>
+              <th>Month</th>
+              <th>FY A — Inquiries</th><th>FY B — Inquiries</th><th>Δ Inquiries</th>
+              <th>FY A — Confirmed</th><th>FY B — Confirmed</th><th>Δ Confirmed</th>
+              <th>FY A — Revenue</th><th>FY B — Revenue</th><th>Δ Revenue</th>
+              <th>FY A — Ad Spend</th><th>FY B — Ad Spend</th><th>Δ Spend</th>
+            </tr></thead>
+            <tbody id="monthly-comp-tbl"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  <!-- MONTH VS MONTH MODE -->
+    <div id="mode-vsmonth" style="display:none">
+      <div class="fy-selector" style="margin-bottom:16px">
+        <div>
+          <label style="font-size:10px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:4px">Month A <span style="color:#C8102E">●</span></label>
+          <select id="vm-month-a" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--text);font-family:Poppins,sans-serif;outline:none;min-width:150px">
+            <option value="0" selected>April</option>
+            <option value="1">May</option>
+            <option value="2">June</option>
+            <option value="3">July</option>
+            <option value="4">August</option>
+            <option value="5">September</option>
+            <option value="6">October</option>
+            <option value="7">November</option>
+            <option value="8">December</option>
+            <option value="9">January</option>
+            <option value="10">February</option>
+            <option value="11">March</option>
+          </select>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div>
+          <label style="font-size:10px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:4px">Month B <span style="color:#4a88d8">●</span></label>
+          <select id="vm-month-b" style="background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600;color:var(--text);font-family:Poppins,sans-serif;outline:none;min-width:150px">
+            <option value="0">April</option>
+            <option value="1" selected>May</option>
+            <option value="2">June</option>
+            <option value="3">July</option>
+            <option value="4">August</option>
+            <option value="5">September</option>
+            <option value="6">October</option>
+            <option value="7">November</option>
+            <option value="8">December</option>
+            <option value="9">January</option>
+            <option value="10">February</option>
+            <option value="11">March</option>
+          </select>
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn btn-gold" onclick="runMonthCompare()">Compare →</button>
+        </div>
+        <div style="margin-left:auto;align-self:flex-end;display:flex;gap:6px">
+          <button class="btn btn-out btn-sm" id="vm-pdf-btn" style="display:none" onclick="dlMonthComparePDF()">📄 PDF</button>
+          <button class="btn btn-out btn-sm" id="vm-excel-btn" style="display:none" onclick="dlMonthCompareExcel()">📊 Excel</button>
+        </div>
+      </div>
+      <div id="vm-empty" style="padding:40px;text-align:center;color:var(--text-2);font-size:13px">
+        <div style="font-size:28px;margin-bottom:10px;opacity:.3">🆚</div>
+        Select two months above and click Compare →
+      </div>
+      <div id="vm-results" style="display:none">
+        <div class="kpi-row k4" id="vm-kpis"></div>
+        <div class="ch-row ch-2">
+          <div class="ch-card"><div class="ch-title">Inquiries &amp; Conversions</div><div class="ch-sub" id="vm-ch1-sub">Month comparison</div><canvas id="vm-ch-inq"></canvas></div>
+          <div class="ch-card"><div class="ch-title">Function Revenue</div><div class="ch-sub">Confirmed event revenue</div><canvas id="vm-ch-rev"></canvas></div>
+        </div>
+        <div class="ch-row ch-2">
+          <div class="ch-card"><div class="ch-title">Social Ad Spend</div><div class="ch-sub">Total spend comparison</div><canvas id="vm-ch-spend"></canvas></div>
+          <div class="ch-card"><div class="ch-title">Inquiries by Source</div><div class="ch-sub">Where guests came from</div><canvas id="vm-ch-src"></canvas></div>
+        </div>
+        <div class="tc">
+          <div class="tc-head"><div class="tc-title" id="vm-tbl-title">Month vs Month Comparison</div></div>
+          <div class="overflow-x"><table>
+            <thead><tr><th>Metric</th><th id="vm-th-a" style="color:#C8102E">Month A</th><th id="vm-th-b" style="color:#4a88d8">Month B</th><th>Difference</th><th>Change %</th></tr></thead>
+            <tbody id="vm-tbl"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('compare');
+requireAuth();
+
+let CMP = { a: null, b: null };
+let compMode = 'annual';
+let compMonth = fyIdxNow();
+const CI = {};
+function kc(id){ if(CI[id]){CI[id].destroy();delete CI[id];} }
+
+const PAL_A = '#C8102E', PAL_B = '#4a88d8';
+const chartDefaults = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#8a8682'}}},
+  scales:{y:{ticks:{color:'#8a8682',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8a8682',font:{size:10}},grid:{display:false}}}
+};
+
+async function loadFYData(fy) {
+  // Fetch all sheets for a given FY
+  async function get(sheet){ try{ const r=await api('GET',{action:'getSheet',token:DB.getToken(),sheet,fy}); return r.data||[]; }catch(e){return[];} }
+  return {
+    fy,
+    socialSpends:   await get('SocialSpends'),
+    funcInquiries:  await get('FuncInquiries'),
+    funcBudgets:    await get('FuncBudgets'),
+    emailCampaigns: await get('EmailCampaigns'),
+    vouchers:       await get('Vouchers'),
+    kissVouchers:   await get('KissFMVouchers'),
+  };
+}
+
+async function runComparison() {
+  const fyA = parseInt(document.getElementById('fy-a').value);
+  const fyB = parseInt(document.getElementById('fy-b').value);
+  if(fyA===fyB){toast('Please select two different financial years.','e');return;}
+  document.getElementById('comp-loading').style.display='flex';
+  document.getElementById('comp-empty').style.display='none';
+  document.getElementById('mode-annual').style.display='none';
+  document.getElementById('mode-monthly').style.display='none';
+  try {
+    const [a,b] = await Promise.all([loadFYData(fyA), loadFYData(fyB)]);
+    CMP.a=a; CMP.b=b;
+    document.getElementById('comp-loading').style.display='none';
+    buildCompMonthTabs();
+    renderMode();
+  } catch(e){
+    toast('Failed to load comparison data: '+e.message,'e');
+    document.getElementById('comp-loading').style.display='none';
+    document.getElementById('comp-empty').style.display='block';
+  }
+}
+
+function setMode(m) {
+  compMode=m;
+  document.getElementById('mt-annual').className='mode-tab'+(m==='annual'?' active':'');
+  document.getElementById('mt-monthly').className='mode-tab'+(m==='monthly'?' active':'');
+  document.getElementById('mt-vsmonth').className='mode-tab'+(m==='vsmonth'?' active':'');
+  if(document.getElementById('mode-vsmonth')) document.getElementById('mode-vsmonth').style.display=m==='vsmonth'?'block':'none';
+  if(CMP.a) renderMode();
+}
+function renderMode(){
+  document.getElementById('mode-annual').style.display  = compMode==='annual'?'block':'none';
+  document.getElementById('mode-monthly').style.display = compMode==='monthly'?'block':'none';
+  if(compMode==='annual') renderAnnual();
+  else renderMonthly();
+}
+
+function fyLabel2(fy){ return `FY ${fy}–${String(fy+1).slice(-2)}`; }
+
+// ── ANNUAL ────────────────────────────────────────────
+function renderAnnual(){
+  const a=CMP.a, b=CMP.b;
+  const aInq=a.funcInquiries||[], bInq=b.funcInquiries||[];
+  const aConf=aInq.filter(x=>x.status==='Confirmed'), bConf=bInq.filter(x=>x.status==='Confirmed');
+  const aRev=aConf.reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+  const bRev=bConf.reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+  const aSS=(a.socialSpends||[]).reduce((s,x)=>s+Number(x.amount||0),0);
+  const bSS=(b.socialSpends||[]).reduce((s,x)=>s+Number(x.amount||0),0);
+  const aVch=(a.vouchers||[]).length+(a.kissVouchers||[]).length;
+  const bVch=(b.vouchers||[]).length+(b.kissVouchers||[]).length;
+  const aConvPct=aInq.length>0?(aConf.length/aInq.length*100).toFixed(1):0;
+  const bConvPct=bInq.length>0?(bConf.length/bInq.length*100).toFixed(1):0;
+
+  const kpis=[
+    {lbl:'Function Inquiries',aV:aInq.length,bV:bInq.length,fmt:n=>n},
+    {lbl:'Confirmed Events',aV:aConf.length,bV:bConf.length,fmt:n=>n},
+    {lbl:'Conversion Rate',aV:aConvPct,bV:bConvPct,fmt:n=>n+'%'},
+    {lbl:'Function Revenue',aV:aRev,bV:bRev,fmt:fmt},
+    {lbl:'Social Ad Spend',aV:aSS,bV:bSS,fmt:fmt},
+    {lbl:'Vouchers Issued',aV:aVch,bV:bVch,fmt:n=>n},
+  ];
+  document.getElementById('annual-kpi-grid').innerHTML=kpis.map(k=>{
+    const g=growthPct(k.bV,k.aV); const gn=Number(g);
+    const gClass=gn>0?'growth-pos':gn<0?'growth-neg':'growth-neu';
+    return `<div class="compare-kpi">
+      <div class="ck-lbl">${k.lbl}</div>
+      <div class="ck-row"><span style="font-size:11px;color:var(--text-2)">${fyLabel2(b.fy)}</span><span class="ck-fy fy-b-color">${k.fmt(k.bV)}</span></div>
+      <div class="ck-row"><span style="font-size:11px;color:var(--text-2)">${fyLabel2(a.fy)}</span><span class="ck-fy fy-a-color">${k.fmt(k.aV)}</span></div>
+      <div style="margin-top:8px;font-size:11px"><span class="${gClass}">${gn>0?'↑':'↓'} ${Math.abs(g)}% ${gn>=0?'growth':'decline'}</span> <span style="color:var(--text-3);font-size:10px">(${fyLabel2(b.fy)} → ${fyLabel2(a.fy)})</span></div>
+    </div>`;
+  }).join('');
+
+  // Label chart titles
+  document.getElementById('ch-ss-la').textContent=fyLabel2(a.fy);
+  document.getElementById('ch-ss-lb').textContent=fyLabel2(b.fy);
+
+  // Charts
+  kc('ch-social-spend'); kc('ch-func-rev'); kc('ch-inq-comp'); kc('ch-email-comp'); kc('ch-voucher-comp');
+
+  const monthData=(data,mapper)=>FY_MONTHS.map((_,i)=>mapper(data.filter(x=>x.fy_month==i)));
+
+  CI['ch-social-spend']=new Chart(document.getElementById('ch-social-spend'),{type:'line',data:{labels:FY_SHORT,datasets:[
+    {label:fyLabel2(a.fy),data:monthData(a.socialSpends||[],m=>m.reduce((s,x)=>s+Number(x.amount||0),0)),borderColor:PAL_A,backgroundColor:'rgba(200,16,46,.1)',fill:true,tension:.3,borderWidth:2,pointRadius:3},
+    {label:fyLabel2(b.fy),data:monthData(b.socialSpends||[],m=>m.reduce((s,x)=>s+Number(x.amount||0),0)),borderColor:PAL_B,backgroundColor:'rgba(74,136,216,.1)',fill:true,tension:.3,borderWidth:2,pointRadius:3,borderDash:[4,3]},
+  ]},options:{...chartDefaults,scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#8a8682',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8a8682',font:{size:10}},grid:{display:false}}}}});
+
+  CI['ch-func-rev']=new Chart(document.getElementById('ch-func-rev'),{type:'bar',data:{labels:FY_SHORT,datasets:[
+    {label:fyLabel2(a.fy),data:monthData(a.funcInquiries.filter(x=>x.status==='Confirmed'),m=>m.reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0)),backgroundColor:'rgba(200,16,46,.5)',borderColor:PAL_A,borderWidth:1.5,borderRadius:3},
+    {label:fyLabel2(b.fy),data:monthData(b.funcInquiries.filter(x=>x.status==='Confirmed'),m=>m.reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0)),backgroundColor:'rgba(74,136,216,.45)',borderColor:PAL_B,borderWidth:1.5,borderRadius:3},
+  ]},options:{...chartDefaults,scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#8a8682',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8a8682',font:{size:10}},grid:{display:false}}}}});
+
+  CI['ch-inq-comp']=new Chart(document.getElementById('ch-inq-comp'),{type:'line',data:{labels:FY_SHORT,datasets:[
+    {label:fyLabel2(a.fy)+' — Inquiries',data:monthData(a.funcInquiries,m=>m.length),borderColor:PAL_A,tension:.3,borderWidth:2,pointRadius:3},
+    {label:fyLabel2(a.fy)+' — Confirmed',data:monthData(a.funcInquiries.filter(x=>x.status==='Confirmed'),m=>m.length),borderColor:PAL_A,borderDash:[4,3],tension:.3,borderWidth:1.5},
+    {label:fyLabel2(b.fy)+' — Inquiries',data:monthData(b.funcInquiries,m=>m.length),borderColor:PAL_B,tension:.3,borderWidth:2,pointRadius:3},
+    {label:fyLabel2(b.fy)+' — Confirmed',data:monthData(b.funcInquiries.filter(x=>x.status==='Confirmed'),m=>m.length),borderColor:PAL_B,borderDash:[4,3],tension:.3,borderWidth:1.5},
+  ]},options:chartDefaults});
+
+  const aEmail=a.emailCampaigns||[], bEmail=b.emailCampaigns||[];
+  CI['ch-email-comp']=new Chart(document.getElementById('ch-email-comp'),{type:'bar',data:{labels:FY_SHORT,datasets:[
+    {label:fyLabel2(a.fy)+' — Sent',data:monthData(aEmail,m=>m.reduce((s,x)=>s+Number(x.sent||0),0)),backgroundColor:'rgba(200,16,46,.45)',borderColor:PAL_A,borderWidth:1.5,borderRadius:3},
+    {label:fyLabel2(b.fy)+' — Sent',data:monthData(bEmail,m=>m.reduce((s,x)=>s+Number(x.sent||0),0)),backgroundColor:'rgba(74,136,216,.4)',borderColor:PAL_B,borderWidth:1.5,borderRadius:3},
+  ]},options:chartDefaults});
+
+  CI['ch-voucher-comp']=new Chart(document.getElementById('ch-voucher-comp'),{type:'bar',data:{labels:FY_SHORT,datasets:[
+    {label:fyLabel2(a.fy),data:FY_MONTHS.map((_,i)=>(a.vouchers||[]).filter(x=>x.fy_month==i).length+(a.kissVouchers||[]).filter(x=>x.fy_month==i).length),backgroundColor:'rgba(200,16,46,.45)',borderColor:PAL_A,borderWidth:1.5,borderRadius:3},
+    {label:fyLabel2(b.fy),data:FY_MONTHS.map((_,i)=>(b.vouchers||[]).filter(x=>x.fy_month==i).length+(b.kissVouchers||[]).filter(x=>x.fy_month==i).length),backgroundColor:'rgba(74,136,216,.4)',borderColor:PAL_B,borderWidth:1.5,borderRadius:3},
+  ]},options:chartDefaults});
+
+  // Full monthly comparison table
+  let tRows='';
+  FY_MONTHS.forEach((_,i)=>{
+    const aI=(CMP.a.funcInquiries||[]).filter(x=>x.fy_month==i).length;
+    const bI=(CMP.b.funcInquiries||[]).filter(x=>x.fy_month==i).length;
+    const aC=(CMP.a.funcInquiries||[]).filter(x=>x.fy_month==i&&x.status==='Confirmed').length;
+    const bC=(CMP.b.funcInquiries||[]).filter(x=>x.fy_month==i&&x.status==='Confirmed').length;
+    const aR=(CMP.a.funcInquiries||[]).filter(x=>x.fy_month==i&&x.status==='Confirmed').reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+    const bR=(CMP.b.funcInquiries||[]).filter(x=>x.fy_month==i&&x.status==='Confirmed').reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+    const aS=(CMP.a.socialSpends||[]).filter(x=>x.fy_month==i).reduce((s,x)=>s+Number(x.amount||0),0);
+    const bS=(CMP.b.socialSpends||[]).filter(x=>x.fy_month==i).reduce((s,x)=>s+Number(x.amount||0),0);
+    const dI=aI-bI, dC=aC-bC, dR=aR-bR, dS=aS-bS;
+    const gc=(v)=>v>0?'color:var(--green)':v<0?'color:var(--danger)':'color:var(--text-2)';
+    tRows+=`<tr>
+      <td><strong>${fyLabel(i)}</strong></td>
+      <td class="mono fy-a-color">${aI}</td><td class="mono fy-b-color">${bI}</td>
+      <td class="mono" style="${gc(dI)}">${dI>=0?'+':''}${dI}</td>
+      <td class="mono fy-a-color">${aC}</td><td class="mono fy-b-color">${bC}</td>
+      <td class="mono" style="${gc(dC)}">${dC>=0?'+':''}${dC}</td>
+      <td class="mono fy-a-color">${aR>0?fmt(aR):'—'}</td><td class="mono fy-b-color">${bR>0?fmt(bR):'—'}</td>
+      <td class="mono" style="${gc(dR)}">${dR!==0?(dR>0?'+':'')+fmt(Math.abs(dR)):'—'}</td>
+      <td class="mono fy-a-color">${aS>0?fmt(aS):'—'}</td><td class="mono fy-b-color">${bS>0?fmt(bS):'—'}</td>
+      <td class="mono" style="${gc(-dS)}">${dS!==0?(dS>0?'+':'')+fmt(Math.abs(dS)):'—'}</td>
+    </tr>`;
+  });
+  if(document.getElementById('monthly-comp-tbl')) document.getElementById('monthly-comp-tbl').innerHTML=tRows;
+}
+
+// ── MONTHLY ───────────────────────────────────────────
+function buildCompMonthTabs(){
+  document.getElementById('comp-month-tabs').innerHTML = FY_MONTHS.map((_,i)=>
+    `<div class="m-tab ${i===compMonth?'active':''}" onclick="setCompMonth(${i})">${FY_SHORT[i]}</div>`
+  ).join('');
+}
+function setCompMonth(i){ compMonth=i; buildCompMonthTabs(); renderMonthly(); }
+
+function renderMonthly(){
+  if(!CMP.a) return;
+  const a=CMP.a, b=CMP.b;
+  const aInqM=(a.funcInquiries||[]).filter(x=>x.fy_month==compMonth);
+  const bInqM=(b.funcInquiries||[]).filter(x=>x.fy_month==compMonth);
+  const aConfM=aInqM.filter(x=>x.status==='Confirmed');
+  const bConfM=bInqM.filter(x=>x.status==='Confirmed');
+  const aRevM=aConfM.reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+  const bRevM=bConfM.reduce((s,x)=>s+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+  const aConvM=aInqM.length>0?(aConfM.length/aInqM.length*100).toFixed(1):0;
+  const bConvM=bInqM.length>0?(bConfM.length/bInqM.length*100).toFixed(1):0;
+
+  const mkKpi=(lbl,aV,bV,fmt2)=>{
+    const g=growthPct(bV,aV); const gn=Number(g);
+    return `<div class="kpi k-g"><div class="kpi-lbl">${lbl}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div><div style="font-size:9px;color:var(--red-brand);font-weight:600">${fyLabel2(a.fy)}</div><div class="kpi-val" style="font-size:16px;color:var(--red-light)">${fmt2(aV)}</div></div>
+        <div><div style="font-size:9px;color:var(--blue);font-weight:600">${fyLabel2(b.fy)}</div><div class="kpi-val" style="font-size:16px;color:var(--blue)">${fmt2(bV)}</div></div>
+      </div>
+      <div style="font-size:11px;margin-top:6px"><span class="${gn>0?'growth-pos':gn<0?'growth-neg':'growth-neu'}">${gn>0?'↑ +':'↓ '}${Math.abs(g)}%</span></div>
+    </div>`;
+  };
+
+  document.getElementById('monthly-kpi-grid').innerHTML = [
+    mkKpi('Inquiries',aInqM.length,bInqM.length,n=>n),
+    mkKpi('Confirmed',aConfM.length,bConfM.length,n=>n),
+    mkKpi('Conversion Rate',aConvM,bConvM,n=>n+'%'),
+    mkKpi('Revenue',aRevM,bRevM,fmt),
+  ].join('');
+
+  kc('ch-m-inq'); kc('ch-m-src');
+  const ETYPES=['Wedding','Birthday','High Tea','Proposal','Engagement','Corporate Event','Get Together','Party','Other'];
+  const SOURCES=['Social Media','Website','Direct Walk-in','Recommendation','Wedding Show / Event','Email','Radio','Other'];
+  CI['ch-m-inq']=new Chart(document.getElementById('ch-m-inq'),{type:'bar',data:{labels:ETYPES,datasets:[
+    {label:fyLabel2(a.fy),data:ETYPES.map(t=>aInqM.filter(x=>x.event_type===t).length),backgroundColor:'rgba(200,16,46,.5)',borderColor:PAL_A,borderWidth:1.5,borderRadius:3},
+    {label:fyLabel2(b.fy),data:ETYPES.map(t=>bInqM.filter(x=>x.event_type===t).length),backgroundColor:'rgba(74,136,216,.45)',borderColor:PAL_B,borderWidth:1.5,borderRadius:3},
+  ]},options:chartDefaults});
+  CI['ch-m-src']=new Chart(document.getElementById('ch-m-src'),{type:'bar',data:{labels:SOURCES.map(s=>s.length>14?s.slice(0,13)+'…':s),datasets:[
+    {label:fyLabel2(a.fy),data:SOURCES.map(s=>aInqM.filter(x=>x.source===s).length),backgroundColor:'rgba(200,16,46,.5)',borderColor:PAL_A,borderWidth:1.5,borderRadius:3},
+    {label:fyLabel2(b.fy),data:SOURCES.map(s=>bInqM.filter(x=>x.source===s).length),backgroundColor:'rgba(74,136,216,.45)',borderColor:PAL_B,borderWidth:1.5,borderRadius:3},
+  ]},options:{...chartDefaults,indexAxis:'y'}});
+}
+
+load();
+// ── MONTH VS MONTH COMPARISON ─────────────────────
+const VM_CI = {};
+function vmkc(id){if(VM_CI[id]){VM_CI[id].destroy();delete VM_CI[id];}}
+
+async function runMonthCompare(){
+  const mA = parseInt(document.getElementById('vm-month-a').value);
+  const mB = parseInt(document.getElementById('vm-month-b').value);
+  if(mA===mB){toast('Select two different months.','e');return;}
+
+  document.getElementById('vm-empty').style.display='none';
+  document.getElementById('vm-results').style.display='block';
+
+  // If no FY data loaded yet, load the active FY
+  if(!CMP.a){
+    showLoader('Loading data...');
+    try{ CMP.a = await loadFYData(FY); CMP.b = CMP.a; }catch(e){toast('Load failed: '+e.message,'e');hideLoader();return;}
+    hideLoader();
+  }
+  // Use same FY data for both months
+  const data = CMP.a || CMP.b;
+  if(!data){toast('Please run a year comparison first to load data.','i');return;}
+
+  const SOURCES=['Social Media','Website','Direct Walk-in','Recommendation','Wedding Show / Event','Email','Radio','Other'];
+
+  const getMonthData = (m) => {
+    const inq = (data.funcInquiries||[]).filter(x=>x.fy_month==m);
+    const conf = inq.filter(x=>x.status==='Confirmed');
+    const rev = conf.reduce((a,x)=>a+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+    const adSpend = (data.socialSpends||[]).filter(x=>x.fy_month==m).reduce((a,s)=>a+Number(s.amount||0),0);
+    const vouchers = (data.vouchers||[]).filter(x=>x.fy_month==m).length+(data.kissVouchers||[]).filter(x=>x.fy_month==m).length;
+    const conv = inq.length>0?(conf.length/inq.length*100).toFixed(1):0;
+    const srcCounts = SOURCES.map(s=>inq.filter(x=>x.source===s).length);
+    return {inq, conf, rev, adSpend, vouchers, conv:Number(conv), srcCounts};
+  };
+
+  const dA = getMonthData(mA), dB = getMonthData(mB);
+  const lblA = fyLabel(mA), lblB = fyLabel(mB);
+
+  document.getElementById('vm-th-a').textContent=lblA;
+  document.getElementById('vm-th-b').textContent=lblB;
+  document.getElementById('vm-tbl-title').textContent=lblA+' vs '+lblB;
+  document.getElementById('vm-ch1-sub').textContent=lblA+' vs '+lblB;
+  document.getElementById('vm-pdf-btn').style.display='inline-flex';
+  document.getElementById('vm-excel-btn').style.display='inline-flex';
+
+  // KPIs
+  const mkKpi=(lbl,a,b,f,col)=>{const d=a-b;const pct=b>0?((a-b)/b*100).toFixed(1):'—';return`<div class="kpi k-g"><div class="kpi-lbl">${lbl}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+      <div><div style="font-size:9px;color:#C8102E;font-weight:600">${lblA}</div><div style="font-size:16px;font-weight:700;color:var(--red-light)">${f(a)}</div></div>
+      <div><div style="font-size:9px;color:#4a88d8;font-weight:600">${lblB}</div><div style="font-size:16px;font-weight:700;color:var(--blue)">${f(b)}</div></div>
+    </div>
+    <div style="font-size:11px;margin-top:6px;color:${d>0?'var(--green)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'↑ +':'↓ '}${Math.abs(pct)}%</div>
+  </div>`};
+  document.getElementById('vm-kpis').innerHTML=[
+    mkKpi('Inquiries',dA.inq.length,dB.inq.length,n=>n),
+    mkKpi('Confirmed',dA.conf.length,dB.conf.length,n=>n),
+    mkKpi('Revenue',dA.rev,dB.rev,fmt),
+    mkKpi('Ad Spend',dA.adSpend,dB.adSpend,fmt),
+  ].join('');
+
+  // Charts
+  vmkc('vm-ch-inq');vmkc('vm-ch-rev');vmkc('vm-ch-spend');vmkc('vm-ch-src');
+  const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:10},color:'#8a8682'}}},scales:{y:{ticks:{color:'#8a8682',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8a8682',font:{size:9}},grid:{display:false}}}};
+  VM_CI['vm-ch-inq']=new Chart(document.getElementById('vm-ch-inq'),{type:'bar',data:{labels:['Total Inquiries','Confirmed','Pending','Lost'],datasets:[
+    {label:lblA,data:[dA.inq.length,dA.conf.length,dA.inq.filter(x=>['Pending','Details Shared'].includes(x.status)).length,dA.inq.filter(x=>['Cancelled','Not Interested'].includes(x.status)).length],backgroundColor:'rgba(200,16,46,.5)',borderColor:'#C8102E',borderWidth:1.5,borderRadius:3},
+    {label:lblB,data:[dB.inq.length,dB.conf.length,dB.inq.filter(x=>['Pending','Details Shared'].includes(x.status)).length,dB.inq.filter(x=>['Cancelled','Not Interested'].includes(x.status)).length],backgroundColor:'rgba(74,136,216,.45)',borderColor:'#4a88d8',borderWidth:1.5,borderRadius:3},
+  ]},options:co});
+  VM_CI['vm-ch-rev']=new Chart(document.getElementById('vm-ch-rev'),{type:'bar',data:{labels:['Food Revenue','Bev Revenue','Total'],datasets:[
+    {label:lblA,data:[dA.conf.reduce((a,x)=>a+Number(x.food_revenue||0),0),dA.conf.reduce((a,x)=>a+Number(x.bev_revenue||0),0),dA.rev],backgroundColor:'rgba(200,16,46,.5)',borderColor:'#C8102E',borderWidth:1.5,borderRadius:3},
+    {label:lblB,data:[dB.conf.reduce((a,x)=>a+Number(x.food_revenue||0),0),dB.conf.reduce((a,x)=>a+Number(x.bev_revenue||0),0),dB.rev],backgroundColor:'rgba(74,136,216,.45)',borderColor:'#4a88d8',borderWidth:1.5,borderRadius:3},
+  ]},options:{...co,scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#8a8682',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8a8682',font:{size:9}},grid:{display:false}}}}});
+  VM_CI['vm-ch-spend']=new Chart(document.getElementById('vm-ch-spend'),{type:'doughnut',data:{labels:[lblA,lblB],datasets:[{data:[dA.adSpend,dB.adSpend],backgroundColor:['#C8102E','#4a88d8'],borderWidth:2,borderColor:'#14141f'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{family:'Poppins',size:10},color:'#8a8682',boxWidth:10}}}}});
+  VM_CI['vm-ch-src']=new Chart(document.getElementById('vm-ch-src'),{type:'bar',data:{labels:SOURCES.map(s=>s.length>14?s.slice(0,13)+'…':s),datasets:[
+    {label:lblA,data:dA.srcCounts,backgroundColor:'rgba(200,16,46,.5)',borderColor:'#C8102E',borderWidth:1.5,borderRadius:3},
+    {label:lblB,data:dB.srcCounts,backgroundColor:'rgba(74,136,216,.45)',borderColor:'#4a88d8',borderWidth:1.5,borderRadius:3},
+  ]},options:{...co,indexAxis:'y'}});
+
+  // Table
+  const metrics=[
+    {lbl:'Total Inquiries',a:dA.inq.length,b:dB.inq.length,f:n=>n},
+    {lbl:'Confirmed Events',a:dA.conf.length,b:dB.conf.length,f:n=>n},
+    {lbl:'Conversion Rate',a:dA.conv,b:dB.conv,f:n=>n+'%'},
+    {lbl:'Function Revenue',a:dA.rev,b:dB.rev,f:fmt},
+    {lbl:'Social Ad Spend',a:dA.adSpend,b:dB.adSpend,f:fmt},
+    {lbl:'Vouchers Issued',a:dA.vouchers,b:dB.vouchers,f:n=>n},
+  ];
+  document.getElementById('vm-tbl').innerHTML=metrics.map(m=>{
+    const d=m.a-m.b; const pct=m.b>0?((m.a-m.b)/m.b*100).toFixed(1):'—';
+    return`<tr><td><strong>${m.lbl}</strong></td><td class="mono fy-a-color">${m.f(m.a)}</td><td class="mono fy-b-color">${m.f(m.b)}</td>
+    <td class="mono" style="color:${d>0?'var(--green)':d<0?'var(--danger)':'var(--text-2)'};font-weight:600">${d>=0?'+':''}${m.f(d)}</td>
+    <td><span class="pill ${d>0?'pgr':d<0?'pr':'pb'}">${d>0?'↑ ':'↓ '}${Math.abs(pct)}%</span></td></tr>`;
+  }).join('');
+
+  // Store for download
+  window._vmDataA=dA; window._vmDataB=dB; window._vmLblA=lblA; window._vmLblB=lblB;
+  window._vmMonA=mA; window._vmMonB=mB;
+}
+
+function dlMonthComparePDF(){
+  if(!window._vmDataA) return;
+  const {html} = buildMonthCompareReport(window._vmDataA, window._vmDataB, window._vmMonA, window._vmMonB, FY);
+  printReport(html, window._vmLblA+' vs '+window._vmLblB);
+}
+function dlMonthCompareExcel(){
+  if(!window._vmDataA) return;
+  const {_vmDataA:a,_vmDataB:b,_vmLblA:lA,_vmLblB:lB} = window;
+  const headers=['Metric',lA,lB,'Difference','Change %'];
+  const metrics=[
+    ['Total Inquiries',a.inq.length,b.inq.length],
+    ['Confirmed Events',a.conf.length,b.conf.length],
+    ['Conversion Rate %',a.conv,b.conv],
+    ['Function Revenue (LKR)',a.rev,b.rev],
+    ['Social Ad Spend (LKR)',a.adSpend,b.adSpend],
+    ['Vouchers Issued',a.vouchers,b.vouchers],
+  ].map(r=>[r[0],r[1],r[2],r[1]-r[2],b.inq&&r[2]>0?((r[1]-r[2])/r[2]*100).toFixed(1)+'%':'—']);
+  downloadExcel([{name:'Month Comparison',data:[headers,...metrics],colWidths:[22,16,16,14,12]}],
+    (lA+'_vs_'+lB).replace(/ /g,'_')+'.xlsx');
+}
+
+async function load(){
+  showLoader('Loading...');
+  try{ const r=await DB.getAll(); renderSidebar(r.user,r.sidebarFields); }catch(e){}
+  hideLoader();
+}
+</script>
+</body>
+</html>

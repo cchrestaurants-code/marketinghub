@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Email Campaigns — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+  <header class="topbar">
+    <div><div class="tb-title">Email Campaigns</div><div class="tb-sub">Campaign performance, open rates, ROI tracking — FY Apr 2026 – Mar 2027</div></div>
+    <div class="tb-r">
+      <span class="fy-chip">LKR · FY 2026–27</span>
+      <button class="btn btn-gold" onclick="openCampModal()">+ Add Campaign</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- Annual KPIs -->
+    <div class="sec" style="margin-top:0"><div class="sec-t">Year-to-Date Overview</div></div>
+    <div class="kpi-row k4" id="ytd-kpis"></div>
+
+    <!-- Month tabs -->
+    <div class="m-tabs" id="m-tabs"></div>
+    <div class="sec"><div class="sec-t" id="m-lbl">—</div></div>
+    <div class="kpi-row k4" id="m-kpis"></div>
+
+    <!-- Charts -->
+    <div class="ch-row ch-2">
+      <div class="ch-card">
+        <div class="ch-title">Open Rate & Click Rate Trend</div>
+        <div class="ch-sub">Monthly average open rate vs click rate across all campaigns</div>
+        <canvas id="ch-rates"></canvas>
+      </div>
+      <div class="ch-card">
+        <div class="ch-title">Emails Sent vs Opened</div>
+        <div class="ch-sub">Monthly volume comparison</div>
+        <canvas id="ch-vol"></canvas>
+      </div>
+    </div>
+    <div class="ch-row" style="grid-template-columns:1fr">
+      <div class="ch-card">
+        <div class="ch-title">Revenue Attributed & ROI by Campaign</div>
+        <div class="ch-sub">Revenue generated vs cost per campaign this month</div>
+        <canvas id="ch-roi"></canvas>
+      </div>
+    </div>
+
+    <!-- Campaign table -->
+    <div class="tc">
+      <div class="tc-head">
+        <div class="tc-title">Campaign Log — <span id="tbl-lbl"></span></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-out btn-sm" onclick="setFilter('all')">All Months</button>
+          <button class="btn btn-out btn-sm" onclick="setFilter(cm)">This Month</button>
+        </div>
+      </div>
+      <div class="overflow-x">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Campaign Name</th><th>Provider</th>
+            <th>Emails Sent</th><th>Delivered</th><th>Opened</th><th>Clicked</th><th>Unsubscribed</th>
+            <th>Open Rate</th><th>Click Rate</th><th>Unsub Rate</th>
+            <th>Cost (LKR)</th><th>Revenue (LKR)</th><th>ROI</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="camp-tbl"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Annual summary table -->
+    <div class="tc">
+      <div class="tc-head"><div class="tc-title">Monthly Summary — Full Year</div></div>
+      <table>
+        <thead><tr><th>Month</th><th>Campaigns</th><th>Total Sent</th><th>Avg Open Rate</th><th>Avg Click Rate</th><th>Total Cost</th><th>Total Revenue</th><th>Overall ROI</th></tr></thead>
+        <tbody id="summary-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- ADD/EDIT CAMPAIGN MODAL -->
+<div class="overlay" id="m-camp">
+  <div class="modal wide">
+    <div class="modal-hd"><div class="modal-t" id="camp-modal-t">Add Email Campaign</div><button class="modal-x" onclick="closeM('m-camp')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg">
+        <div class="fr"><label>Send Date</label><input type="date" id="ec-date"></div>
+        <div class="fr"><label>Campaign Name</label><input type="text" id="ec-name" placeholder="e.g. Ramadan Offer, Valentine Staycation"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Email Provider / Company</label><input type="text" id="ec-provider" placeholder="e.g. Mailchimp, Constant Contact, Agency Name"></div>
+        <div class="fr"><label>Target Segment</label><input type="text" id="ec-segment" placeholder="e.g. All subscribers, Past guests, Corporate"></div>
+      </div>
+
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📊 Volume Metrics — Rates calculated automatically</div>
+        <div class="fg3">
+          <div class="fr"><label>Emails Sent</label><input type="number" id="ec-sent" placeholder="350000" oninput="calcRates()"></div>
+          <div class="fr"><label>Delivered</label><input type="number" id="ec-delivered" placeholder="0" oninput="calcRates()"></div>
+          <div class="fr"><label>Opened</label><input type="number" id="ec-opened" placeholder="0" oninput="calcRates()"></div>
+        </div>
+        <div class="fg3">
+          <div class="fr"><label>Clicked</label><input type="number" id="ec-clicked" placeholder="0" oninput="calcRates()"></div>
+          <div class="fr"><label>Unsubscribed</label><input type="number" id="ec-unsub" placeholder="0" oninput="calcRates()"></div>
+          <div class="fr"><label>Bounced</label><input type="number" id="ec-bounced" placeholder="0" oninput="calcRates()"></div>
+        </div>
+        <!-- Auto-calculated rates -->
+        <div class="fg3" style="margin-top:4px">
+          <div class="fr">
+            <label>Open Rate % <span style="color:var(--green);font-size:9px">AUTO</span></label>
+            <input type="text" id="ec-openrate" readonly style="opacity:.7;cursor:not-allowed;color:var(--gold);font-weight:600">
+          </div>
+          <div class="fr">
+            <label>Click Rate % <span style="color:var(--green);font-size:9px">AUTO</span></label>
+            <input type="text" id="ec-clickrate" readonly style="opacity:.7;cursor:not-allowed;color:var(--gold);font-weight:600">
+          </div>
+          <div class="fr">
+            <label>Unsub Rate % <span style="color:var(--green);font-size:9px">AUTO</span></label>
+            <input type="text" id="ec-unsubrate" readonly style="opacity:.7;cursor:not-allowed;color:var(--gold);font-weight:600">
+          </div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">💰 Financial — ROI calculated automatically</div>
+        <div class="fg3">
+          <div class="fr"><label>Campaign Cost (LKR)</label><input type="number" id="ec-cost" placeholder="0.00" oninput="calcRates()"></div>
+          <div class="fr"><label>Revenue Attributed (LKR)</label><input type="number" id="ec-revenue" placeholder="0.00" oninput="calcRates()"></div>
+          <div class="fr">
+            <label>ROI % <span style="color:var(--green);font-size:9px">AUTO</span></label>
+            <input type="text" id="ec-roi" readonly style="opacity:.7;cursor:not-allowed;color:var(--gold);font-weight:600">
+          </div>
+        </div>
+      </div>
+
+      <div class="fr"><label>Notes</label><textarea id="ec-notes" placeholder="Campaign details, audience, subject line performance..."></textarea></div>
+      <input type="hidden" id="ec-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-camp')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveCamp()" id="ec-save">Save Campaign</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('email');
+requireAuth();
+let D={}, cm=fyIdxNow(), filter=cm;
+const CI={};
+function kc(id){if(CI[id]){CI[id].destroy();delete CI[id];}}
+
+async function load(){
+  showLoader('Loading Email Campaigns...');
+  try{
+    const r=await DB.getAll();
+    D=r;
+    // Load email campaigns from sheet
+    D.emailCampaigns = await loadEmailCampaigns();
+    renderSidebar(r.user,r.sidebarFields);
+    renderTabs();render();
+  }catch(e){toast('Load failed: '+e.message,'e');}
+  hideLoader();
+}
+
+async function loadEmailCampaigns(){
+  try{
+    const r=await api('GET',{action:'getSheet',token:DB.getToken(),sheet:'EmailCampaigns'});
+    return (r.data||[]).filter(x=>x.fy==FY);
+  }catch(e){return[];}
+}
+
+function renderTabs(){
+  document.getElementById('m-tabs').innerHTML=FY_MONTHS.map((m,i)=>{
+    const hd=(D.emailCampaigns||[]).filter(c=>c.fy_month==i).length>0;
+    return`<div class="m-tab ${i===cm?'active':''} ${hd&&i!==cm?'hd':''}" onclick="setCM(${i})">${FY_SHORT[i]}</div>`;
+  }).join('');
+}
+function setCM(i){cm=i;filter=i;renderTabs();render();}
+function setFilter(v){filter=v;render();}
+
+function calcRates(){
+  const sent=parseFloat(document.getElementById('ec-sent').value)||0;
+  const delivered=parseFloat(document.getElementById('ec-delivered').value)||0;
+  const opened=parseFloat(document.getElementById('ec-opened').value)||0;
+  const clicked=parseFloat(document.getElementById('ec-clicked').value)||0;
+  const unsub=parseFloat(document.getElementById('ec-unsub').value)||0;
+  const cost=parseFloat(document.getElementById('ec-cost').value)||0;
+  const revenue=parseFloat(document.getElementById('ec-revenue').value)||0;
+  const base=delivered>0?delivered:sent;
+  document.getElementById('ec-openrate').value = base>0?(opened/base*100).toFixed(2)+'%':'—';
+  document.getElementById('ec-clickrate').value = opened>0?(clicked/opened*100).toFixed(2)+'%':'—';
+  document.getElementById('ec-unsubrate').value = base>0?(unsub/base*100).toFixed(2)+'%':'—';
+  document.getElementById('ec-roi').value = cost>0?(((revenue-cost)/cost)*100).toFixed(1)+'%':'—';
+}
+
+function render(){
+  const all=D.emailCampaigns||[];
+  const lbl=fyLabel(cm);
+  document.getElementById('m-lbl').textContent=lbl;
+  document.getElementById('tbl-lbl').textContent=filter==='all'?'All Months':lbl;
+
+  // YTD KPIs
+  const ytdSent=all.reduce((a,c)=>a+Number(c.sent||0),0);
+  const ytdOpened=all.reduce((a,c)=>a+Number(c.opened||0),0);
+  const ytdCost=all.reduce((a,c)=>a+Number(c.cost||0),0);
+  const ytdRev=all.reduce((a,c)=>a+Number(c.revenue||0),0);
+  const ytdOR=ytdSent>0?(ytdOpened/ytdSent*100):0;
+  document.getElementById('ytd-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">Total Emails Sent YTD</div><div class="kpi-val">${ytdSent.toLocaleString()}</div><div class="kpi-sub">${all.length} campaigns</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Avg Open Rate YTD</div><div class="kpi-val">${ytdOR.toFixed(1)}%</div><div class="kpi-sub">industry avg ~21%</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Total Cost YTD</div><div class="kpi-val">${fmt(ytdCost)}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Revenue Attributed YTD</div><div class="kpi-val">${fmt(ytdRev)}</div><span class="kpi-badge ${ytdRev>=ytdCost?'bgg':'bgr'}">${ytdCost>0?((ytdRev-ytdCost)/ytdCost*100).toFixed(0)+'% ROI':'—'}</span></div>`;
+
+  // Month KPIs
+  const mCamps=all.filter(c=>c.fy_month==cm);
+  const mSent=mCamps.reduce((a,c)=>a+Number(c.sent||0),0);
+  const mOpened=mCamps.reduce((a,c)=>a+Number(c.opened||0),0);
+  const mCost=mCamps.reduce((a,c)=>a+Number(c.cost||0),0);
+  const mRev=mCamps.reduce((a,c)=>a+Number(c.revenue||0),0);
+  document.getElementById('m-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">${FY_MONTHS[cm]} Campaigns</div><div class="kpi-val">${mCamps.length}</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Emails Sent</div><div class="kpi-val">${mSent.toLocaleString()}</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Open Rate</div><div class="kpi-val">${mSent>0?(mOpened/mSent*100).toFixed(1)+'%':'—'}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Revenue This Month</div><div class="kpi-val">${fmt(mRev)}</div></div>`;
+
+  // Charts
+  kc('ch-rates');kc('ch-vol');kc('ch-roi');
+  const monthOR=FY_MONTHS.map((_,i)=>{const mc=all.filter(c=>c.fy_month==i);const s=mc.reduce((a,c)=>a+Number(c.sent||0),0);const o=mc.reduce((a,c)=>a+Number(c.opened||0),0);return s>0?(o/s*100).toFixed(1):0;});
+  const monthCR=FY_MONTHS.map((_,i)=>{const mc=all.filter(c=>c.fy_month==i);const o=mc.reduce((a,c)=>a+Number(c.opened||0),0);const cl=mc.reduce((a,c)=>a+Number(c.clicked||0),0);return o>0?(cl/o*100).toFixed(1):0;});
+  CI['ch-rates']=new Chart(document.getElementById('ch-rates'),{type:'line',data:{labels:FY_SHORT,datasets:[{label:'Open Rate %',data:monthOR,borderColor:'#b8956a',backgroundColor:'rgba(184,149,106,0.07)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#b8956a',fill:true,tension:.3},{label:'Click Rate %',data:monthCR,borderColor:'#4db87a',backgroundColor:'rgba(77,184,122,0.07)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#4db87a',fill:true,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#9a9590'}}},scales:{y:{ticks:{callback:v=>v+'%',color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}}});
+
+  const monthSent=FY_MONTHS.map((_,i)=>all.filter(c=>c.fy_month==i).reduce((a,c)=>a+Number(c.sent||0),0));
+  const monthOpen=FY_MONTHS.map((_,i)=>all.filter(c=>c.fy_month==i).reduce((a,c)=>a+Number(c.opened||0),0));
+  CI['ch-vol']=new Chart(document.getElementById('ch-vol'),{type:'bar',data:{labels:FY_SHORT,datasets:[{label:'Sent',data:monthSent,backgroundColor:'rgba(184,149,106,0.4)',borderColor:'#b8956a',borderWidth:1.5,borderRadius:3},{label:'Opened',data:monthOpen,backgroundColor:'rgba(77,184,122,0.4)',borderColor:'#4db87a',borderWidth:1.5,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#9a9590'}}},scales:{y:{ticks:{callback:v=>fmtK(v),color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}}});
+
+  const campList=filter==='all'?all:all.filter(c=>c.fy_month==cm);
+  CI['ch-roi']=new Chart(document.getElementById('ch-roi'),{type:'bar',data:{labels:campList.map(c=>c.name||'Campaign'),datasets:[{label:'Cost (LKR)',data:campList.map(c=>Number(c.cost||0)),backgroundColor:'rgba(224,85,85,0.4)',borderColor:'#e05555',borderWidth:1.5,borderRadius:3},{label:'Revenue (LKR)',data:campList.map(c=>Number(c.revenue||0)),backgroundColor:'rgba(77,184,122,0.4)',borderColor:'#4db87a',borderWidth:1.5,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#9a9590'}}},scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}}});
+
+  // Campaign table
+  let rows='';
+  campList.forEach(c=>{
+    const base=Number(c.delivered||0)>0?Number(c.delivered):Number(c.sent||0);
+    const or=base>0?(Number(c.opened||0)/base*100).toFixed(1):'—';
+    const cr=Number(c.opened||0)>0?(Number(c.clicked||0)/Number(c.opened)*100).toFixed(1):'—';
+    const ur=base>0?(Number(c.unsubscribed||0)/base*100).toFixed(2):'—';
+    const cost=Number(c.cost||0),rev=Number(c.revenue||0);
+    const roi=cost>0?((rev-cost)/cost*100).toFixed(0):'—';
+    rows+=`<tr>
+      <td>${c.date||'—'}</td>
+      <td style="font-weight:500;min-width:160px">${c.name||'—'}</td>
+      <td style="font-size:11px;color:var(--text-2)">${c.provider||'—'}</td>
+      <td class="mono">${Number(c.sent||0).toLocaleString()}</td>
+      <td class="mono">${Number(c.delivered||0).toLocaleString()}</td>
+      <td class="mono">${Number(c.opened||0).toLocaleString()}</td>
+      <td class="mono">${Number(c.clicked||0).toLocaleString()}</td>
+      <td class="mono">${Number(c.unsubscribed||0).toLocaleString()}</td>
+      <td><span class="pill ${Number(or)>=25?'pgr':Number(or)>=15?'pa':'pr'}">${or}%</span></td>
+      <td><span class="pill pb">${cr}%</span></td>
+      <td class="mono" style="font-size:11px">${ur}%</td>
+      <td class="mono">${fmt(cost)}</td>
+      <td class="mono">${fmt(rev)}</td>
+      <td><span class="pill ${Number(roi)>=0?'pgr':'pr'}">${roi}%</span></td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-edit btn-sm" onclick="editCamp('${c.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="delCamp('${c.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('camp-tbl').innerHTML=rows||`<tr><td colspan="15"><div class="empty"><div class="ei">📧</div>No campaigns for this period.</div></td></tr>`;
+
+  // Monthly summary
+  let srows='';
+  FY_MONTHS.forEach((m,i)=>{
+    const mc=all.filter(c=>c.fy_month==i);
+    if(!mc.length){srows+=`<tr><td>${fyLabel(i)}</td><td style="color:var(--text-3)">—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;return;}
+    const s=mc.reduce((a,c)=>a+Number(c.sent||0),0);
+    const o=mc.reduce((a,c)=>a+Number(c.opened||0),0);
+    const cl=mc.reduce((a,c)=>a+Number(c.clicked||0),0);
+    const co=mc.reduce((a,c)=>a+Number(c.cost||0),0);
+    const rv=mc.reduce((a,c)=>a+Number(c.revenue||0),0);
+    const or=s>0?(o/s*100).toFixed(1):0;
+    const cr=o>0?(cl/o*100).toFixed(1):0;
+    const roi=co>0?((rv-co)/co*100).toFixed(0):'—';
+    srows+=`<tr><td><strong>${fyLabel(i)}</strong></td><td>${mc.length}</td><td class="mono">${s.toLocaleString()}</td><td><span class="pill ${Number(or)>=25?'pgr':Number(or)>=15?'pa':'pr'}">${or}%</span></td><td><span class="pill pb">${cr}%</span></td><td class="mono">${fmt(co)}</td><td class="mono">${fmt(rv)}</td><td><span class="pill ${Number(roi)>=0?'pgr':'pr'}">${roi}%</span></td></tr>`;
+  });
+  document.getElementById('summary-tbl').innerHTML=srows;
+}
+
+function openCampModal(){
+  document.getElementById('camp-modal-t').textContent='Add Email Campaign';
+  document.getElementById('ec-save').textContent='Save Campaign';
+  document.getElementById('ec-id').value='';
+  document.getElementById('ec-date').value=new Date().toISOString().split('T')[0];
+  ['ec-name','ec-provider','ec-segment','ec-notes'].forEach(id=>document.getElementById(id).value='');
+  ['ec-sent','ec-delivered','ec-opened','ec-clicked','ec-unsub','ec-bounced','ec-cost','ec-revenue'].forEach(id=>document.getElementById(id).value='');
+  ['ec-openrate','ec-clickrate','ec-unsubrate','ec-roi'].forEach(id=>document.getElementById(id).value='');
+  openM('m-camp');
+}
+function editCamp(id){
+  const c=(D.emailCampaigns||[]).find(x=>x.id==id);if(!c)return;
+  document.getElementById('camp-modal-t').textContent='Edit Email Campaign';
+  document.getElementById('ec-save').textContent='Update Campaign';
+  document.getElementById('ec-id').value=id;
+  document.getElementById('ec-date').value=c.date||'';
+  document.getElementById('ec-name').value=c.name||'';
+  document.getElementById('ec-provider').value=c.provider||'';
+  document.getElementById('ec-segment').value=c.segment||'';
+  document.getElementById('ec-sent').value=c.sent||'';
+  document.getElementById('ec-delivered').value=c.delivered||'';
+  document.getElementById('ec-opened').value=c.opened||'';
+  document.getElementById('ec-clicked').value=c.clicked||'';
+  document.getElementById('ec-unsub').value=c.unsubscribed||'';
+  document.getElementById('ec-bounced').value=c.bounced||'';
+  document.getElementById('ec-cost').value=c.cost||'';
+  document.getElementById('ec-revenue').value=c.revenue||'';
+  document.getElementById('ec-notes').value=c.notes||'';
+  calcRates();
+  openM('m-camp');
+}
+async function saveCamp(){
+  const eid=document.getElementById('ec-id').value;
+  const name=document.getElementById('ec-name').value.trim();
+  const date=document.getElementById('ec-date').value;
+  if(!name){toast('Campaign name required.','e');return;}
+  const sent=parseFloat(document.getElementById('ec-sent').value)||0;
+  const delivered=parseFloat(document.getElementById('ec-delivered').value)||0;
+  const opened=parseFloat(document.getElementById('ec-opened').value)||0;
+  const clicked=parseFloat(document.getElementById('ec-clicked').value)||0;
+  const unsub=parseFloat(document.getElementById('ec-unsub').value)||0;
+  const base=delivered>0?delivered:sent;
+  const p={
+    fy:FY, fy_month:date?fyIdx(date):cm, date, name,
+    provider:document.getElementById('ec-provider').value,
+    segment:document.getElementById('ec-segment').value,
+    sent, delivered, opened, clicked, unsubscribed:unsub,
+    bounced:parseFloat(document.getElementById('ec-bounced').value)||0,
+    open_rate:base>0?(opened/base*100).toFixed(2):0,
+    click_rate:opened>0?(clicked/opened*100).toFixed(2):0,
+    unsub_rate:base>0?(unsub/base*100).toFixed(3):0,
+    cost:parseFloat(document.getElementById('ec-cost').value)||0,
+    revenue:parseFloat(document.getElementById('ec-revenue').value)||0,
+    notes:document.getElementById('ec-notes').value
+  };
+  showLoader(eid?'Updating...':'Saving...');
+  try{
+    if(eid) await DB.update('EMAIL_CAMPAIGNS',eid,p);
+    else await DB.add('EMAIL_CAMPAIGNS',p);
+    D.emailCampaigns=await loadEmailCampaigns();
+    closeM('m-camp');renderTabs();render();
+    toast(eid?'Campaign updated!':'Campaign saved!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delCamp(id){
+  if(!confirm('Delete this campaign?'))return;
+  showLoader('Deleting...');
+  try{
+    await DB.remove('EMAIL_CAMPAIGNS',id);
+    D.emailCampaigns=await loadEmailCampaigns();
+    renderTabs();render();toast('Deleted.');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+load();
+</script>
+</body>
+</html>

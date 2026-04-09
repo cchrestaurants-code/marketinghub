@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Budget Tracker — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script src="../js/reports.js"></script>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title">Budget Tracker</div>
+      <div class="tb-sub">Monthly budget allocation, spend recording &amp; variance tracking</div>
+    </div>
+    <div class="tb-r">
+      <span class="fy-chip">LKR · FY <span id="fy-lbl"></span></span>
+      <button class="btn btn-out btn-sm" onclick="dlBudgetPDF()">📄 PDF</button>
+      <button class="btn btn-out btn-sm" onclick="dlBudgetExcel()">📊 Excel</button>
+      <button class="btn btn-out" onclick="openBudgetModal()">✏ Set Budgets</button>
+      <button class="btn btn-gold" onclick="openSpendModal()">+ Add Spend</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="m-tabs" id="m-tabs"></div>
+    <div class="sec">
+      <div class="sec-t" id="month-lbl">—</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-out btn-sm" onclick="openBudgetModal()">✏ Edit Budgets</button>
+        <button class="btn btn-gold btn-sm" onclick="openSpendModal()">+ Add Entry</button>
+      </div>
+    </div>
+    <div id="bud-alerts"></div>
+    <div class="kpi-row k4" id="m-kpis"></div>
+
+    <div class="tc" style="margin-bottom:16px">
+      <div class="tc-head">
+        <div class="tc-title">Budget vs Actual — <span id="tbl-month-lbl"></span></div>
+        <span class="pill pg" style="font-size:10px">Direct spend</span>
+      </div>
+      <div class="overflow-x">
+        <table>
+          <thead><tr><th>Line Item</th><th>Category</th><th>Budget</th><th>Actual</th><th>Progress</th><th>Remaining</th><th>YTD</th></tr></thead>
+          <tbody id="li-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tc" style="margin-bottom:16px">
+      <div class="tc-head">
+        <div class="tc-title">Auto-Linked Module Spend — <span id="auto-lbl"></span></div>
+        <span class="pill pb" style="font-size:10px">From Social Media, Influencer, Print pages</span>
+      </div>
+      <div class="overflow-x">
+        <table>
+          <thead><tr><th>Line Item</th><th>Module</th><th>Budget</th><th>Auto Spend</th><th>Progress</th><th>Remaining</th></tr></thead>
+          <tbody id="auto-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tc">
+      <div class="tc-head">
+        <div class="tc-title">Spend Entries — <span id="entries-lbl"></span></div>
+        <button class="btn btn-gold btn-sm" onclick="openSpendModal()">+ Add Entry</button>
+      </div>
+      <div class="overflow-x">
+        <table>
+          <thead><tr><th>Date</th><th>Line Item</th><th>Category</th><th>Description</th><th>Amount (LKR)</th><th>Reference</th><th>Notes</th><th>Actions</th></tr></thead>
+          <tbody id="spend-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ch-row ch-2" style="margin-top:16px">
+      <div class="ch-card"><div class="ch-title">Monthly Spend Trend</div><div class="ch-sub">Total spend vs budget across all months</div><canvas id="ch-trend"></canvas></div>
+      <div class="ch-card"><div class="ch-title">Spend Distribution</div><div class="ch-sub">Share per line item this month</div><canvas id="ch-dist"></canvas></div>
+    </div>
+  </div>
+</main>
+
+<!-- SET BUDGET MODAL -->
+<div class="overlay" id="m-budget">
+  <div class="modal wide">
+    <div class="modal-hd"><div class="modal-t">Set Monthly Budgets — <span id="bud-modal-lbl"></span></div><button class="modal-x" onclick="closeM('m-budget')">×</button></div>
+    <div class="modal-bd" id="bud-modal-items"></div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-budget')">Cancel</button><button class="btn btn-gold" onclick="saveBudgets()">Save Budgets</button></div>
+  </div>
+</div>
+
+<!-- ADD SPEND MODAL -->
+<div class="overlay" id="m-spend">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="spend-modal-t">Add Spend Entry</div><button class="modal-x" onclick="closeM('m-spend')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg">
+        <div class="fr"><label>Date</label><input type="date" id="sp-date"></div>
+        <div class="fr"><label>Line Item</label><select id="sp-li"></select></div>
+      </div>
+      <div class="fr"><label>Description</label><input type="text" id="sp-desc" placeholder="What was this spend for?"></div>
+      <div class="fg">
+        <div class="fr"><label>Amount (LKR)</label><input type="number" id="sp-amt" placeholder="0"></div>
+        <div class="fr"><label>Reference / Invoice #</label><input type="text" id="sp-ref" placeholder="Optional"></div>
+      </div>
+      <div class="fr"><label>Notes</label><textarea id="sp-notes" placeholder="Additional notes..."></textarea></div>
+      <input type="hidden" id="sp-id">
+    </div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-spend')">Cancel</button><button class="btn btn-gold" onclick="saveSpend()" id="sp-save">Save Entry</button></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('budget');
+requireAuth();
+document.getElementById('fy-lbl').textContent = `${FY}–${String(FY+1).slice(-2)}`;
+
+let D = {}, CM = fyIdxNow();
+const CI = {};
+function kc(id){ if(CI[id]){CI[id].destroy();delete CI[id];} }
+
+function getMB(liId,m){ const b=(D.monthlyBudgets||[]).find(x=>x.line_item_id==liId&&x.month==m&&x.fy==FY); return Number(b?.amount||0); }
+function getDS(liId,m){ return (D.spends||[]).filter(s=>s.line_item_id==liId&&s.fy_month==m).reduce((a,s)=>a+Number(s.amount||0),0); }
+function getLS(liId,m){
+  const li=(D.lineItems||[]).find(x=>x.id==liId); if(!li?.linked_module)return 0;
+  if(li.linked_module==='social')     return (D.socialSpends||[]).filter(s=>s.fy_month==m).reduce((a,s)=>a+Number(s.amount||0),0);
+  if(li.linked_module==='influencer') return (D.engagements||[]).filter(e=>e.fy_month==m).reduce((a,e)=>a+Number(e.fee||0),0);
+  if(li.linked_module==='print')      return (D.printOrders||[]).filter(p=>p.fy_month==m).reduce((a,p)=>a+(Number(p.qty||0)*Number(p.unit_price||0)),0);
+  return 0;
+}
+function getMS(liId,m){ return getDS(liId,m)+getLS(liId,m); }
+function getYTD(liId){ let t=0; for(let i=0;i<12;i++) t+=getMS(liId,i); return t; }
+function grandMB(m){ return (D.lineItems||[]).reduce((a,l)=>a+getMB(l.id,m),0); }
+function grandMS(m){ return (D.lineItems||[]).reduce((a,l)=>a+getMS(l.id,m),0); }
+
+async function load(){
+  showLoader('Loading Budget Tracker...');
+  try{ const r=await DB.getAll(); D=r; renderSidebar(r.user,r.sidebarFields); renderTabs(); render(); }
+  catch(e){ toast('Load failed: '+e.message,'e'); }
+  hideLoader();
+}
+
+function renderTabs(){
+  document.getElementById('m-tabs').innerHTML=FY_MONTHS.map((_,i)=>{
+    const has=grandMS(i)>0||grandMB(i)>0;
+    return`<div class="m-tab ${i===CM?'active':''} ${has&&i!==CM?'hd':''}" onclick="setCM(${i})">${FY_SHORT[i]}</div>`;
+  }).join('');
+}
+function setCM(i){ CM=i; renderTabs(); render(); }
+
+function render(){
+  const m=CM,lbl=fyLabel(m);
+  ['month-lbl','tbl-month-lbl','auto-lbl','entries-lbl'].forEach(id=>document.getElementById(id).textContent=lbl);
+  const mb=grandMB(m),ms=grandMS(m),rem=mb-ms,p=mb>0?ms/mb*100:0;
+  const ytdB=Array.from({length:12},(_,i)=>grandMB(i)).reduce((a,b)=>a+b,0);
+  const ytdS=Array.from({length:12},(_,i)=>grandMS(i)).reduce((a,b)=>a+b,0);
+
+  let alerts='';
+  (D.lineItems||[]).forEach(li=>{
+    const b=getMB(li.id,m),s=getMS(li.id,m),pp=b>0?s/b*100:0;
+    if(pp>=100) alerts+=`<div class="alert al-r">⚠ <strong>${li.name}</strong> is over budget (${pp.toFixed(0)}%)</div>`;
+    else if(pp>=80) alerts+=`<div class="alert al-a">⚡ <strong>${li.name}</strong> at ${pp.toFixed(0)}% of budget</div>`;
+  });
+  document.getElementById('bud-alerts').innerHTML=alerts;
+
+  document.getElementById('m-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">${FY_MONTHS[m]} Budget</div><div class="kpi-val">${fmtK(mb)}</div><div class="kpi-sub">LKR ${Number(mb).toLocaleString()}</div></div>
+    <div class="kpi ${p>=100?'k-r':p>=80?'k-a':'k-b'}"><div class="kpi-lbl">${FY_MONTHS[m]} Spend</div><div class="kpi-val">${fmtK(ms)}</div>${progBar(p)}</div>
+    <div class="kpi ${rem<0?'k-r':'k-gr'}"><div class="kpi-lbl">Remaining</div><div class="kpi-val">${fmtK(Math.abs(rem))}</div><div class="kpi-sub">${rem>=0?'under':'over'} budget</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">YTD Spend</div><div class="kpi-val">${fmtK(ytdS)}</div><div class="kpi-sub">of ${fmtK(ytdB)} budgeted</div></div>`;
+
+  const direct=(D.lineItems||[]).filter(l=>!l.linked_module);
+  let liRows='';
+  direct.forEach(li=>{
+    const b=getMB(li.id,m),s=getDS(li.id,m),rem2=b-s,pp=b>0?s/b*100:0,ytd=getYTD(li.id);
+    liRows+=`<tr><td><strong>${li.name}</strong></td><td><span class="pill pg">${li.category}</span></td><td class="mono">${fmt(b)}</td><td class="mono">${fmt(s)}</td><td>${progBar(pp)}</td><td class="mono" style="color:${rem2<0?'var(--danger)':'var(--green)'}">${rem2>=0?'+':''}${fmt(rem2)}</td><td class="mono" style="color:var(--text-2)">${fmt(ytd)}</td></tr>`;
+  });
+  document.getElementById('li-rows').innerHTML=liRows||`<tr><td colspan="7"><div class="empty">No direct line items. Add in Settings → Budget Line Items.</div></td></tr>`;
+
+  const linked=(D.lineItems||[]).filter(l=>l.linked_module);
+  let autoRows='';
+  linked.forEach(li=>{
+    const b=getMB(li.id,m),s=getLS(li.id,m),rem3=b-s,pp=b>0?s/b*100:0;
+    const modName={'social':'📱 Social Media','influencer':'🤝 Influencer','print':'🖨 Print/Suppliers'}[li.linked_module]||li.linked_module;
+    autoRows+=`<tr><td><strong>${li.name}</strong></td><td><span class="pill pb">${modName}</span></td><td class="mono">${fmt(b)}</td><td class="mono">${fmt(s)}</td><td>${progBar(pp)}</td><td class="mono" style="color:${rem3<0?'var(--danger)':'var(--green)'}">${rem3>=0?'+':''}${fmt(rem3)}</td></tr>`;
+  });
+  document.getElementById('auto-rows').innerHTML=autoRows||`<tr><td colspan="6"><div class="empty">No linked line items configured.</div></td></tr>`;
+
+  const ents=(D.spends||[]).filter(s=>s.fy_month==m);
+  let sRows='';
+  ents.slice().sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).forEach(s=>{
+    const li=(D.lineItems||[]).find(x=>x.id==s.line_item_id);
+    sRows+=`<tr><td>${fmtDate(s.date)||'—'}</td><td>${li?.name||'—'}</td><td><span class="pill pg">${li?.category||'—'}</span></td><td style="max-width:200px">${s.description||'—'}</td><td class="mono" style="font-weight:600">${fmt(s.amount)}</td><td style="font-size:11px;color:var(--text-2)">${s.reference||'—'}</td><td style="font-size:11px;color:var(--text-2)">${s.notes||'—'}</td>
+    <td><div style="display:flex;gap:4px"><button class="btn btn-edit btn-sm" onclick="editSpend('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" onclick="delSpend('${s.id}')">✕</button></div></td></tr>`;
+  });
+  document.getElementById('spend-rows').innerHTML=sRows||`<tr><td colspan="8"><div class="empty"><div class="ei">💳</div>No entries for ${lbl}.</div></td></tr>`;
+
+  // Charts
+  kc('ch-trend'); kc('ch-dist');
+  const tB=FY_MONTHS.map((_,i)=>grandMB(i)), tS=FY_MONTHS.map((_,i)=>grandMS(i));
+  CI['ch-trend']=new Chart(document.getElementById('ch-trend'),{type:'bar',data:{labels:FY_SHORT,datasets:[{label:'Budget',data:tB,type:'line',borderColor:'#C8102E',borderWidth:2,pointRadius:3,pointBackgroundColor:'#C8102E',fill:false,tension:.2,order:1},{label:'Actual',data:tS,backgroundColor:tS.map((s,i)=>s>tB[i]?'rgba(224,68,68,.55)':'rgba(200,16,46,.45)'),borderRadius:3,order:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#8a8682'}}},scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#8a8682',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8a8682',font:{size:10}},grid:{display:false}}}}});
+  const allLIs=D.lineItems||[];
+  const spData=allLIs.map(li=>getMS(li.id,m)).filter(v=>v>0);
+  const spLabs=allLIs.filter(li=>getMS(li.id,m)>0).map(li=>li.name.length>16?li.name.slice(0,15)+'…':li.name);
+  CI['ch-dist']=new Chart(document.getElementById('ch-dist'),{type:'doughnut',data:{labels:spLabs.length?spLabs:['No spend'],datasets:[{data:spData.length?spData:[1],backgroundColor:['#C8102E','#3db870','#4a88d8','#d4800a','#9b7ac8','#4db8a0','#e04444','#f4a433'],borderWidth:2,borderColor:'#14141f'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#8a8682',boxWidth:10}}}}});
+}
+
+function openBudgetModal(){
+  document.getElementById('bud-modal-lbl').textContent=fyLabel(CM);
+  const items=D.lineItems||[];
+  let html=`<div style="font-size:11.5px;color:var(--text-2);margin-bottom:14px">Set budget targets for <strong>${fyLabel(CM)}</strong>.</div>`;
+  items.forEach(li=>{
+    const b=getMB(li.id,CM);
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;align-items:center">
+      <div><strong style="font-size:12px">${li.name}</strong><br><span class="pill pg" style="font-size:9px">${li.category}</span>${li.linked_module?`<span class="pill pb" style="font-size:9px;margin-left:4px">auto-linked</span>`:''}</div>
+      <div class="fr" style="margin:0"><label>Budget (LKR)</label><input type="number" id="bud-${li.id}" value="${b||''}" placeholder="0"></div>
+    </div>`;
+  });
+  document.getElementById('bud-modal-items').innerHTML=html||'<div class="empty">No line items. Add them in Settings first.</div>';
+  openM('m-budget');
+}
+async function saveBudgets(){
+  showLoader('Saving budgets...');
+  try{
+    for(const li of D.lineItems||[]){
+      const v=parseFloat(document.getElementById('bud-'+li.id)?.value)||0;
+      await DB.upsertBudget(li.id,CM,v);
+    }
+    const r=await DB.getAll(); D=r; closeM('m-budget'); renderTabs(); render(); toast('Budgets saved!');
+  }catch(e){ toast('Failed: '+e.message,'e'); }
+  hideLoader();
+}
+
+function openSpendModal(){
+  document.getElementById('spend-modal-t').textContent='Add Spend Entry';
+  document.getElementById('sp-save').textContent='Save Entry';
+  document.getElementById('sp-id').value='';
+  document.getElementById('sp-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('sp-li').innerHTML=(D.lineItems||[]).filter(l=>!l.linked_module).map(l=>`<option value="${l.id}">${l.name}</option>`).join('');
+  ['sp-desc','sp-amt','sp-ref','sp-notes'].forEach(id=>document.getElementById(id).value='');
+  openM('m-spend');
+}
+function editSpend(id){
+  const s=(D.spends||[]).find(x=>x.id==id);if(!s)return;
+  document.getElementById('spend-modal-t').textContent='Edit Spend Entry';
+  document.getElementById('sp-save').textContent='Update';
+  document.getElementById('sp-id').value=id;
+  document.getElementById('sp-li').innerHTML=(D.lineItems||[]).filter(l=>!l.linked_module).map(l=>`<option value="${l.id}" ${l.id==s.line_item_id?'selected':''}>${l.name}</option>`).join('');
+  document.getElementById('sp-date').value=fmtDate(s.date)||'';
+  document.getElementById('sp-desc').value=s.description||'';
+  document.getElementById('sp-amt').value=s.amount||'';
+  document.getElementById('sp-ref').value=s.reference||'';
+  document.getElementById('sp-notes').value=s.notes||'';
+  openM('m-spend');
+}
+async function saveSpend(){
+  const eid=document.getElementById('sp-id').value;
+  const liId=document.getElementById('sp-li').value;
+  const desc=document.getElementById('sp-desc').value.trim();
+  const amt=parseFloat(document.getElementById('sp-amt').value)||0;
+  const date=document.getElementById('sp-date').value;
+  if(!liId||!desc||!amt){toast('Line item, description and amount are required.','e');return;}
+  const p={line_item_id:liId,fy:FY,fy_month:date?fyIdx(date):CM,date,description:desc,amount:amt,reference:document.getElementById('sp-ref').value,notes:document.getElementById('sp-notes').value};
+  showLoader('Saving...');
+  try{
+    if(eid)await DB.update('SPENDS',eid,p);else await DB.add('SPENDS',p);
+    const r=await DB.getAll();D=r;closeM('m-spend');renderTabs();render();toast(eid?'Updated!':'Saved!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delSpend(id){
+  if(!confirm('Delete this entry?'))return;
+  showLoader('Deleting...');
+  try{await DB.remove('SPENDS',id);const r=await DB.getAll();D=r;renderTabs();render();toast('Deleted.');}
+  catch(e){toast('Failed: '+e.message,'e');}hideLoader();
+}
+
+function dlBudgetPDF(){
+  const {html}=buildBudgetReport(D,CM,FY);
+  printReport(html,'Budget Report — '+fyLabel(CM));
+}
+function dlBudgetExcel(){
+  const {items,totBudget,totActual,totVariance,mLabel}=buildBudgetReport(D,CM,FY);
+  const headers=['Line Item','Category','Budget (LKR)','Actual Spend (LKR)','Usage %','Variance (LKR)'];
+  const rows=items.map(i=>[i.name,i.category,i.budget,i.actual,i.pct.toFixed(1)+'%',i.variance]);
+  const summary=[['Monthly Budget Report — Colombo Court Hotel & Spa'],['Period',mLabel],['Generated',rDate()],[''],['SUMMARY'],['Total Budget',totBudget],['Total Actual',totActual],['Variance',totVariance],['']];
+  downloadExcel([{name:'Summary',data:[...summary,[''],headers,...rows],colWidths:[24,16,16,16,10,16]}],'budget_'+mLabel.replace(/ /g,'_')+'.xlsx');
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/config.js"></script>
+</head>
+<body>
+
+<div id="loader"><div class="loader-spinner"></div><div id="loader-msg">Loading...</div></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <div class="sb-icon">🏨</div>
+      <div><div class="sb-hotel">Colombo Court<br>Hotel & Spa</div></div>
+    </div>
+    <div class="sb-fy" id="sb-fy-label">FY Apr 2026 – Mar 2027</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">Overview</div>
+    <a class="sb-item active" href="dashboard.html">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+    </a>
+    <div class="sb-section">Budget</div>
+    <a class="sb-item" href="budget.html">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Budget Tracker
+    </a>
+    <a class="sb-item" href="social.html">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg>Social Media
+    </a>
+    <a class="sb-item" href="influencers.html">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Influencers
+    </a>
+    <a class="sb-item" href="suppliers.html">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h0a4 4 0 0 1 4 4H4a4 4 0 0 1 4-4h0"/></svg>Suppliers & Print
+    </a>
+    <div class="sb-section">Config</div>
+    <a class="sb-item" href="settings.html" id="sb-settings-link">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>Settings
+    </a>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-user">
+      <div class="sb-username" id="sb-uname">—</div>
+      <div class="sb-role" id="sb-role">—</div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sign out</button>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title">Dashboard</div>
+      <div class="tb-sub">Annual & monthly budget overview · FY Apr 2026 – Mar 2027</div>
+    </div>
+    <div class="tb-right">
+      <span class="fy-chip">LKR · FY 2026–27</span>
+      <button class="btn btn-outline" onclick="window.location.href='budget.html'">+ Record Spend</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- Annual KPIs -->
+    <div class="sec-head" style="margin-top:0"><div class="sec-title">Annual Overview</div></div>
+    <div class="kpi-grid kpi-4" id="annual-kpis"></div>
+
+    <!-- Monthly KPIs for current month -->
+    <div class="sec-head"><div class="sec-title" id="cur-month-heading">Current Month</div></div>
+    <div class="kpi-grid kpi-4" id="month-kpis"></div>
+
+    <!-- Charts row 1 -->
+    <div class="chart-row cr-2l">
+      <div class="chart-card">
+        <div class="chart-head">Monthly Spend vs Budget</div>
+        <div class="chart-sub">Actual spend tracked against your monthly budget allocations — FY Apr 2026 → Mar 2027</div>
+        <canvas id="ch-monthly"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">Annual Budget by Category</div>
+        <div class="chart-sub">Total annual allocation per line item</div>
+        <canvas id="ch-donut"></canvas>
+      </div>
+    </div>
+
+    <!-- Charts row 2 -->
+    <div class="chart-row cr-2e">
+      <div class="chart-card">
+        <div class="chart-head">YTD Spend vs Budget — By Line Item</div>
+        <div class="chart-sub">Year-to-date actuals vs budgets across all 7 categories</div>
+        <canvas id="ch-bars"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">Social Media Breakdown</div>
+        <div class="chart-sub">Spend split by type — Campaigns, Boosting, Content</div>
+        <canvas id="ch-soc"></canvas>
+      </div>
+    </div>
+
+    <!-- Budget health table -->
+    <div class="t-card">
+      <div class="t-head">
+        <div class="t-title">Budget Health — All Line Items</div>
+        <span class="pill p-gold" style="font-size:10px">Annual View</span>
+      </div>
+      <table>
+        <thead><tr><th>Line Item</th><th>Category</th><th>Annual Budget</th><th>Spent YTD</th><th>Remaining</th><th>% Used</th><th>Status</th></tr></thead>
+        <tbody id="health-tbl"></tbody>
+      </table>
+    </div>
+
+    <!-- Monthly breakdown table -->
+    <div class="t-card">
+      <div class="t-head">
+        <div class="t-title">Monthly Budget vs Spend — All Months</div>
+        <span class="pill p-blue" style="font-size:10px">FY Apr 2026 – Mar 2027</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="monthly-tbl">
+          <thead id="monthly-thead"></thead>
+          <tbody id="monthly-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const FY = 2026;
+const user = requireAuth();
+if(user) {
+  document.getElementById('sb-uname').textContent = user.username;
+  document.getElementById('sb-role').textContent = user.role;
+  if(!isAdmin()) document.getElementById('sb-settings-link').style.display = 'none';
+}
+
+let lineItems=[], monthlyBudgets=[], spends=[], socials=[], engagements=[], printOrders=[];
+const CI={};
+function kc(id){if(CI[id]){CI[id].destroy();delete CI[id];}}
+
+async function loadAll() {
+  showLoader('Loading dashboard...');
+  try {
+    [lineItems, monthlyBudgets, spends, socials, engagements, printOrders] = await Promise.all([
+      DB.getLineItems(), DB.getMonthlyBudgets(FY), DB.getSpends(FY),
+      DB.getSocials(FY), DB.getEngagements(FY), DB.getPrintOrders(FY)
+    ]);
+    render();
+  } catch(e) {
+    toast('Failed to load data: ' + e.message, 'error');
+    console.error(e);
+  }
+  hideLoader();
+}
+
+function getMonthBudget(liId, mIdx) {
+  const mb = monthlyBudgets.find(b => b.line_item_id === liId && b.month === mIdx);
+  return mb ? Number(mb.amount) : 0;
+}
+function getMonthSpendDirect(liId, mIdx) {
+  return spends.filter(s => s.line_item_id === liId && s.fy_month === mIdx).reduce((a,s)=>a+Number(s.amount),0);
+}
+function getMonthSpendLinked(liId, mIdx) {
+  const li = lineItems.find(l=>l.id===liId);
+  if(!li||!li.linked_module) return 0;
+  if(li.linked_module==='social') return socials.filter(s=>s.fy_month===mIdx).reduce((a,s)=>a+Number(s.amount),0);
+  if(li.linked_module==='influencer') return engagements.filter(e=>e.fy_month===mIdx).reduce((a,e)=>a+Number(e.fee),0);
+  if(li.linked_module==='print') return printOrders.filter(o=>o.fy_month===mIdx).reduce((a,o)=>a+Number(o.qty)*Number(o.unit_price),0);
+  return 0;
+}
+function getMonthSpend(liId, mIdx) { return getMonthSpendDirect(liId,mIdx) + getMonthSpendLinked(liId,mIdx); }
+function getAnnualBudget(liId) { return monthlyBudgets.filter(b=>b.line_item_id===liId).reduce((a,b)=>a+Number(b.amount),0); }
+function getAnnualSpend(liId) { let t=0; for(let i=0;i<12;i++) t+=getMonthSpend(liId,i); return t; }
+function grandAnnualBudget() { return lineItems.reduce((a,l)=>a+getAnnualBudget(l.id),0); }
+function grandAnnualSpent()  { return lineItems.reduce((a,l)=>a+getAnnualSpend(l.id),0); }
+function grandMonthBudget(m) { return lineItems.reduce((a,l)=>a+getMonthBudget(l.id,m),0); }
+function grandMonthSpent(m)  { return lineItems.reduce((a,l)=>a+getMonthSpend(l.id,m),0); }
+
+function statusPill(p) {
+  if(p>=100) return '<span class="pill p-red">Over Budget</span>';
+  if(p>=80)  return '<span class="pill p-amber">Warning</span>';
+  if(p>=40)  return '<span class="pill p-blue">On Track</span>';
+  return '<span class="pill p-green">Good</span>';
+}
+function progBar(p) {
+  const c=p>=100?'over':p>=80?'warn':'';
+  return`<div class="prog"><div class="prog-fill ${c}" style="width:${Math.min(p,100)}%"></div></div><span style="font-size:10px;color:var(--text-muted)">${p.toFixed(1)}%</span>`;
+}
+
+function render() {
+  const cm = fyIdxNow();
+  const tb=grandAnnualBudget(), ts=grandAnnualSpent(), rem=tb-ts, pct=tb>0?ts/tb*100:0;
+  const mb=grandMonthBudget(cm), ms=grandMonthSpent(cm), mrem=mb-ms, mpct=mb>0?ms/mb*100:0;
+
+  // Annual KPIs
+  document.getElementById('annual-kpis').innerHTML=`
+    <div class="kpi-card kpi-gold"><div class="kpi-label">Total Annual Budget</div><div class="kpi-val">${fmt(tb)}</div><div class="kpi-sub">${lineItems.length} line items · FY 2026–27</div></div>
+    <div class="kpi-card ${pct>=80?'kpi-red':pct>=50?'kpi-amber':'kpi-green'}"><div class="kpi-label">Total Spent YTD</div><div class="kpi-val">${fmt(ts)}</div><span class="kpi-badge ${pct>=80?'bg-red':pct>=50?'bg-amber':'bg-green'}">${pct.toFixed(1)}% used</span></div>
+    <div class="kpi-card kpi-blue"><div class="kpi-label">Annual Remaining</div><div class="kpi-val">${fmt(rem)}</div><div class="kpi-sub">${(100-pct).toFixed(1)}% available</div></div>
+    <div class="kpi-card kpi-amber"><div class="kpi-label">Line Items at Risk</div><div class="kpi-val">${lineItems.filter(l=>{const p2=getAnnualBudget(l.id)>0?getAnnualSpend(l.id)/getAnnualBudget(l.id)*100:0;return p2>=80;}).length}</div><div class="kpi-sub">items at 80%+ of budget</div></div>`;
+
+  // Month KPIs
+  document.getElementById('cur-month-heading').textContent = fyMonthLabel(cm, FY) + ' — Current Month';
+  document.getElementById('month-kpis').innerHTML=`
+    <div class="kpi-card kpi-gold"><div class="kpi-label">${FY_MONTHS[cm]} Budget</div><div class="kpi-val">${fmt(mb)}</div><div class="kpi-sub">Allocated for this month</div></div>
+    <div class="kpi-card ${mpct>=80?'kpi-red':mpct>=50?'kpi-amber':'kpi-green'}"><div class="kpi-label">${FY_MONTHS[cm]} Spent</div><div class="kpi-val">${fmt(ms)}</div><span class="kpi-badge ${mpct>=80?'bg-red':mpct>=50?'bg-amber':'bg-green'}">${mpct.toFixed(1)}% of month budget</span></div>
+    <div class="kpi-card kpi-blue"><div class="kpi-label">${FY_MONTHS[cm]} Remaining</div><div class="kpi-val">${fmt(mrem)}</div><div class="kpi-sub">${mrem<0?'⚠ Over this month':''}</div></div>
+    <div class="kpi-card kpi-amber"><div class="kpi-label">Social Spend ${FY_MONTHS[cm]}</div><div class="kpi-val">${fmt(socials.filter(s=>s.fy_month===cm).reduce((a,s)=>a+Number(s.amount),0))}</div></div>`;
+
+  renderHealthTable();
+  renderMonthlyTable();
+  renderCharts();
+}
+
+function renderHealthTable() {
+  let rows='';
+  lineItems.forEach(li=>{
+    const ab=getAnnualBudget(li.id), as2=getAnnualSpend(li.id), rem=ab-as2, p=ab>0?as2/ab*100:0;
+    rows+=`<tr>
+      <td><strong>${li.name}</strong></td>
+      <td><span class="pill p-gold">${li.category}</span></td>
+      <td class="mono">${fmt(ab)}</td>
+      <td class="mono">${fmt(as2)}</td>
+      <td class="mono" style="color:${rem<0?'var(--red)':'var(--green)'};font-weight:600">${fmt(rem)}</td>
+      <td>${progBar(p)}</td>
+      <td>${statusPill(p)}</td>
+    </tr>`;
+  });
+  document.getElementById('health-tbl').innerHTML=rows||`<tr><td colspan="7"><div class="empty"><div class="ei">◉</div>No line items yet. Go to Settings to add.</div></td></tr>`;
+}
+
+function renderMonthlyTable() {
+  // Build a table: rows=line items, cols=months
+  const thead = `<tr><th>Line Item</th>${FY_MONTHS.map((m,i)=>`<th style="min-width:90px">${FY_SHORT[i]}</th>`).join('')}<th>Total</th></tr>`;
+  document.getElementById('monthly-thead').innerHTML = thead;
+
+  let rows = '';
+  // Budget row per line item
+  lineItems.forEach(li => {
+    const cells = FY_MONTHS.map((_,i) => {
+      const b=getMonthBudget(li.id,i), s=getMonthSpend(li.id,i), rem=b-s;
+      const p=b>0?s/b*100:0;
+      const col=p>=100?'var(--red)':p>=80?'var(--amber)':'var(--text-muted)';
+      return `<td style="font-size:11px"><div style="color:var(--text);font-weight:500">${fmt(b)}</div><div style="color:${col}">${fmt(s)}</div><div style="font-size:10px;color:var(--text-dim)">rem: ${fmt(rem)}</div></td>`;
+    });
+    const annBud=getAnnualBudget(li.id), annSpent=getAnnualSpend(li.id);
+    rows += `<tr style="border-bottom:2px solid rgba(184,149,106,0.1)">
+      <td><strong>${li.name}</strong><br><span style="font-size:10px;color:var(--text-muted)">Budget / Spent / Rem</span></td>
+      ${cells.join('')}
+      <td><div style="font-weight:600;font-size:11px">${fmt(annBud)}</div><div style="color:var(--amber);font-size:11px">${fmt(annSpent)}</div></td>
+    </tr>`;
+  });
+
+  // Total row
+  const totCells = FY_MONTHS.map((_,i)=>{
+    const b=grandMonthBudget(i), s=grandMonthSpent(i);
+    return `<td style="font-size:11px;background:rgba(184,149,106,0.05)"><div style="color:var(--gold);font-weight:600">${fmt(b)}</div><div style="color:var(--text)">${fmt(s)}</div></td>`;
+  });
+  rows += `<tr style="background:rgba(184,149,106,0.04)">
+    <td><strong style="color:var(--gold)">TOTAL</strong><br><span style="font-size:10px;color:var(--text-muted)">Budget / Spent</span></td>
+    ${totCells.join('')}
+    <td><div style="font-weight:600;color:var(--gold)">${fmt(grandAnnualBudget())}</div><div style="color:var(--text)">${fmt(grandAnnualSpent())}</div></td>
+  </tr>`;
+
+  document.getElementById('monthly-tbody').innerHTML = rows;
+}
+
+function renderCharts() {
+  const PAL=['#b8956a','#4caf7d','#e05c5c','#d4843a','#5b8fd4','#9b7ac8','#4caf9b'];
+
+  // Monthly spend vs budget
+  kc('ch-monthly');
+  CI['ch-monthly']=new Chart(document.getElementById('ch-monthly'),{
+    type:'bar',
+    data:{
+      labels:FY_SHORT,
+      datasets:[
+        {label:'Budget',data:FY_MONTHS.map((_,i)=>grandMonthBudget(i)),type:'line',borderColor:'#b8956a',borderWidth:2,pointRadius:3,pointBackgroundColor:'#b8956a',fill:false,tension:0.1,order:1},
+        {label:'Actual Spend',data:FY_MONTHS.map((_,i)=>grandMonthSpent(i)),backgroundColor:FY_MONTHS.map((_,i)=>{const s=grandMonthSpent(i),b=grandMonthBudget(i);return s>b?'rgba(224,92,92,0.6)':'rgba(184,149,106,0.6)';}),borderRadius:4,order:2}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#7a7570'}}},scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#7a7570',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#7a7570',font:{size:10}},grid:{display:false}}}}
+  });
+
+  // Donut
+  kc('ch-donut');
+  CI['ch-donut']=new Chart(document.getElementById('ch-donut'),{
+    type:'doughnut',
+    data:{labels:lineItems.map(l=>l.name),datasets:[{data:lineItems.map(l=>getAnnualBudget(l.id)),backgroundColor:PAL,borderWidth:2,borderColor:'#16161f'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#7a7570',boxWidth:10,padding:8}}}}
+  });
+
+  // Bar comparison
+  kc('ch-bars');
+  CI['ch-bars']=new Chart(document.getElementById('ch-bars'),{
+    type:'bar',
+    data:{
+      labels:lineItems.map(l=>l.name.length>12?l.name.slice(0,12)+'…':l.name),
+      datasets:[
+        {label:'Budget',data:lineItems.map(l=>getAnnualBudget(l.id)),backgroundColor:'rgba(184,149,106,0.25)',borderColor:'#b8956a',borderWidth:1.5,borderRadius:3},
+        {label:'Spent',data:lineItems.map(l=>getAnnualSpend(l.id)),backgroundColor:'rgba(76,175,125,0.35)',borderColor:'#4caf7d',borderWidth:1.5,borderRadius:3}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#7a7570'}}},scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#7a7570',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#7a7570',font:{size:10}},grid:{display:false}}}}
+  });
+
+  // Social donut
+  kc('ch-soc');
+  const st={};socials.forEach(s=>{st[s.type]=(st[s.type]||0)+Number(s.amount);});
+  CI['ch-soc']=new Chart(document.getElementById('ch-soc'),{
+    type:'doughnut',
+    data:{labels:Object.keys(st).length?Object.keys(st):['No data'],datasets:[{data:Object.keys(st).length?Object.values(st):[1],backgroundColor:Object.keys(st).length?PAL:['rgba(255,255,255,0.07)'],borderWidth:2,borderColor:'#16161f'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#7a7570',boxWidth:10}}}}
+  });
+}
+
+loadAll();
+</script>
+</body>
+</html>

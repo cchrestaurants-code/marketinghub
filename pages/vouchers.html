@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Voucher Tracker — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script src="../js/reports.js"></script>
+<style>
+.v-tabs{display:flex;gap:0;margin-bottom:18px;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content;}
+.v-tab{padding:8px 20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-2);background:transparent;border:none;font-family:'Poppins',sans-serif;transition:all .14s;}
+.v-tab.active{background:var(--red-brand);color:#fff;}
+.v-tab:hover:not(.active){background:rgba(200,16,46,.08);color:var(--red-light);}
+.kiss-banner{background:linear-gradient(135deg,rgba(200,16,46,.12),rgba(200,16,46,.04));border:1px solid var(--border-r);border-radius:9px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.kiss-title{font-size:13px;font-weight:600;color:var(--text);}
+.kiss-sub{font-size:11px;color:var(--text-2);margin-top:2px;}
+.kiss-stats{display:flex;gap:14px;}
+.kiss-stat{text-align:center;}
+.kiss-stat .kv{font-size:18px;font-weight:700;color:var(--red-light);}
+.kiss-stat .kl{font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;}
+.v-status-active  {background:var(--green-bg);color:var(--green);border:1px solid rgba(61,184,112,.2);}
+.v-status-expired {background:var(--danger-bg);color:var(--danger);border:1px solid rgba(224,68,68,.2);}
+.v-status-redeemed{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(74,136,216,.2);}
+.v-status-issued  {background:var(--red-bg);color:var(--red-light);border:1px solid var(--border-r);}
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title">Voucher Tracker</div>
+      <div class="tb-sub">General hotel vouchers · KissFM agreement · Redemption tracking</div>
+    </div>
+    <div class="tb-r">
+      <span class="fy-chip">FY <span id="fy-label-top"></span></span>
+      <button class="btn btn-out btn-sm" onclick="dlVouchersPDF()">📄 PDF</button>
+      <button class="btn btn-out btn-sm" onclick="dlVouchersExcel()">📊 Excel</button>
+      <button class="btn btn-out btn-sm" onclick="openKissModal()">📻 KissFM Voucher</button>
+      <button class="btn btn-gold" onclick="openVoucherModal()">+ Issue Voucher</button>
+    </div>
+  </header>
+  <div class="content">
+
+    <!-- KissFM Banner -->
+    <div class="kiss-banner">
+      <div>
+        <div class="kiss-title">📻 KissFM Agreement</div>
+        <div class="kiss-sub" id="kiss-quota-sub">12 vouchers per month · Unique codes · Separate agreement tracking</div>
+      </div>
+      <div class="kiss-stats" id="kiss-stats">
+        <div class="kiss-stat"><div class="kv" id="ks-issued">0</div><div class="kl">Issued This Month</div></div>
+        <div class="kiss-stat"><div class="kv" id="ks-remaining">12</div><div class="kl">Remaining</div></div>
+        <div class="kiss-stat"><div class="kv" id="ks-redeemed">0</div><div class="kl">Redeemed</div></div>
+        <div class="kiss-stat"><div class="kv" id="ks-expired">0</div><div class="kl">Expired</div></div>
+      </div>
+      <button class="btn btn-out btn-sm" onclick="showKissView()">View KissFM →</button>
+    </div>
+
+    <!-- Tab toggle -->
+    <div class="v-tabs">
+      <button class="v-tab active" id="vt-general" onclick="switchVTab('general')">🎫 General Vouchers</button>
+      <button class="v-tab" id="vt-kiss" onclick="switchVTab('kiss')">📻 KissFM Vouchers</button>
+    </div>
+
+    <!-- GENERAL VOUCHERS -->
+    <div id="v-general">
+      <div class="m-tabs" id="v-month-tabs"></div>
+      <div class="kpi-row k4" id="v-kpis"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select id="vf-type" onchange="renderVouchers()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11.5px;font-family:Poppins,sans-serif;color:var(--text);outline:none">
+            <option value="">All Types</option>
+          </select>
+          <select id="vf-status" onchange="renderVouchers()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11.5px;font-family:Poppins,sans-serif;color:var(--text);outline:none">
+            <option value="">All Status</option>
+            <option>Active</option><option>Redeemed</option><option>Expired</option><option>Cancelled</option>
+          </select>
+        </div>
+        <div style="font-size:11px;color:var(--text-2)" id="v-count"></div>
+      </div>
+      <div class="tc">
+        <div class="tc-head"><div class="tc-title">Vouchers — <span id="v-tbl-lbl">—</span></div></div>
+        <div class="overflow-x">
+          <table>
+            <thead><tr>
+              <th>Voucher Code</th><th>Type</th><th>Sub-type</th><th>Issued To</th>
+              <th>Requested By</th><th>Issue Date</th><th>Valid From</th>
+              <th>Expiry Date</th><th>Redeem Date</th><th>Status</th><th>Notes</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="v-tbl-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="ch-row ch-2" id="v-charts" style="display:none">
+        <div class="ch-card"><div class="ch-title">Vouchers by Type</div><div class="ch-sub">Total issued per category</div><canvas id="ch-v-type"></canvas></div>
+        <div class="ch-card"><div class="ch-title">Status Breakdown</div><div class="ch-sub">Active vs Redeemed vs Expired</div><canvas id="ch-v-status"></canvas></div>
+      </div>
+    </div>
+
+    <!-- KISSFM VOUCHERS -->
+    <div id="v-kiss" style="display:none">
+      <div class="m-tabs" id="kiss-month-tabs"></div>
+      <div class="kpi-row k4" id="kiss-kpis"></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:11px;color:var(--text-2)">Monthly quota: <strong style="color:var(--text)">12 vouchers</strong> — each with a unique KissFM code</div>
+        <button class="btn btn-out btn-sm" onclick="openKissModal()">+ Add KissFM Voucher</button>
+      </div>
+      <div class="tc">
+        <div class="tc-head"><div class="tc-title">KissFM Vouchers — <span id="kiss-tbl-lbl">—</span></div><span class="pill pg" id="kiss-tbl-count">0/12</span></div>
+        <div class="overflow-x">
+          <table>
+            <thead><tr>
+              <th>KissFM Code</th><th>Voucher Type</th><th>Issued To</th><th>Issue Date</th>
+              <th>Valid From</th><th>Expiry Date</th><th>Redeem Date</th>
+              <th>Status</th><th>Notes</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="kiss-tbl-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Annual KissFM summary -->
+      <div class="tc">
+        <div class="tc-head"><div class="tc-title">KissFM Annual Summary</div><div style="font-size:11px;color:var(--text-2)">Quota: ${getKissQuota()}/month · ${getKissQuota()*12}/year</div></div>
+        <table>
+          <thead><tr><th>Month</th><th>Issued</th><th>Quota</th><th>Remaining</th><th>Redeemed</th><th>Expired</th><th>Active</th><th>Redemption Rate</th></tr></thead>
+          <tbody id="kiss-annual-tbl"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ISSUE VOUCHER MODAL -->
+<div class="overlay" id="m-voucher">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div class="modal-t" id="v-modal-title">Issue New Voucher</div>
+      <button class="modal-x" onclick="closeM('m-voucher')">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="modal-section">
+        <div class="modal-section-title">🎫 Voucher Details</div>
+        <div class="fg3">
+          <div class="fr"><label>Voucher Code <span style="color:var(--red-brand)">*</span></label>
+            <div style="display:flex;gap:6px">
+              <input type="text" id="v-code" placeholder="e.g. CC-2026-001" style="flex:1">
+              <button class="btn btn-out btn-sm" onclick="genCode()" style="white-space:nowrap">Auto</button>
+            </div>
+          </div>
+          <div class="fr"><label>Voucher Type <span style="color:var(--red-brand)">*</span></label>
+            <select id="v-type" onchange="updateSubTypes()"></select>
+          </div>
+          <div class="fr"><label>Sub-type / Value</label>
+            <select id="v-subtype"></select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">👤 Recipient & Dates</div>
+        <div class="fg">
+          <div class="fr"><label>Issued To (Guest/Recipient)</label><input type="text" id="v-issued-to" placeholder="Guest name"></div>
+          <div class="fr"><label>Requested By</label><input type="text" id="v-requested-by" placeholder="Who requested this"></div>
+        </div>
+        <div class="fg3">
+          <div class="fr"><label>Issue Date <span style="color:var(--red-brand)">*</span></label><input type="date" id="v-issue-date"></div>
+          <div class="fr"><label>Valid From</label><input type="date" id="v-valid-from"></div>
+          <div class="fr"><label>Expiry Date</label><input type="date" id="v-expiry"></div>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Status</label>
+          <select id="v-status">
+            <option>Active</option><option>Redeemed</option><option>Expired</option><option>Cancelled</option>
+          </select>
+        </div>
+        <div class="fr"><label>Redeem Date (if redeemed)</label><input type="date" id="v-redeem-date"></div>
+      </div>
+      <div class="fr"><label>Notes</label><textarea id="v-notes" placeholder="Any special conditions, value, instructions..."></textarea></div>
+      <input type="hidden" id="v-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-voucher')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveVoucher()">Save Voucher</button>
+    </div>
+  </div>
+</div>
+
+<!-- KISSFM VOUCHER MODAL -->
+<div class="overlay" id="m-kiss">
+  <div class="modal">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-t" id="kiss-modal-title">Add KissFM Voucher</div>
+        <div style="font-size:10.5px;color:var(--text-2);margin-top:2px" id="kiss-modal-quota">KissFM Agreement · 12 vouchers per month</div>
+      </div>
+      <button class="modal-x" onclick="closeM('m-kiss')">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="fg">
+        <div class="fr"><label>KissFM Code <span style="color:var(--red-brand)">*</span></label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="k-code" placeholder="e.g. KISS-APR26-001" style="flex:1">
+            <button class="btn btn-out btn-sm" onclick="genKissCode()">Auto</button>
+          </div>
+        </div>
+        <div class="fr"><label>Voucher Type <span style="color:var(--red-brand)">*</span></label>
+          <select id="k-type"></select>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Issued To</label><input type="text" id="k-issued-to" placeholder="Guest / winner name"></div>
+        <div class="fr"><label>Issue Date <span style="color:var(--red-brand)">*</span></label><input type="date" id="k-issue-date"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Valid From</label><input type="date" id="k-valid-from"></div>
+        <div class="fr"><label>Expiry Date</label><input type="date" id="k-expiry"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Redeem Date</label><input type="date" id="k-redeem-date"></div>
+        <div class="fr"><label>Status</label>
+          <select id="k-status"><option>Active</option><option>Redeemed</option><option>Expired</option><option>Cancelled</option></select>
+        </div>
+      </div>
+      <div class="fr"><label>Notes</label><textarea id="k-notes" placeholder="Notes about this KissFM voucher..."></textarea></div>
+      <input type="hidden" id="k-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-kiss')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveKissVoucher()">Save KissFM Voucher</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('vouchers');
+requireAuth();
+document.getElementById('fy-label-top').textContent = `${FY}–${String(FY+1).slice(-2)}`;
+
+// Load dropdown options from localStorage (editable in Settings)
+function getDD(k, defaults){ try{ const s=localStorage.getItem('cc_dd_'+k); return s?JSON.parse(s):defaults; }catch(e){return defaults;} }
+function getKissQuota(){ return parseInt(localStorage.getItem('cc_kiss_quota'))||12; }
+
+// Voucher types come from Settings → editable dropdowns
+function getVoucherTypes(){ return getDD('voucher_types',['Hotel Stay','Dinner','High Tea','Spa','Discount','Complimentary','Other']); }
+function getVoucherSubtypes(){ return getDD('voucher_subtypes',['Room Only','Bed & Breakfast','Half Board','Full Board','Dinner for 2','Dinner for 1','High Tea for 1','High Tea for 2','High Tea for 4','High Tea Platter for 2','Spa Treatment (Free)','Spa Discount 20%','Spa Discount 25%','20% Off Total Bill','25% Off Total Bill','25% Off – Cloud Cafe','25% Off – Amber Poolside','Welcome Drink','Room Upgrade','Custom']); }
+function getKissTypes(){ return getDD('kiss_voucher_types',['Hotel Stay','Dinner for 2','High Tea for 2','Spa Treatment','Discount Voucher']); }
+
+let VD = { vouchers:[], kissVouchers:[] };
+let vCM = fyIdxNow(), kissCM = fyIdxNow();
+const CI = {};
+function kc(id){ if(CI[id]){CI[id].destroy();delete CI[id];} }
+
+async function load() {
+  showLoader('Loading Vouchers...');
+  try {
+    const r = await DB.getAll();
+    VD.vouchers     = await fetchSheet('Vouchers');
+    VD.kissVouchers = await fetchSheet('KissFMVouchers');
+    renderSidebar(r.user, r.sidebarFields);
+    populateTypeFilters();
+    buildVMonthTabs();
+    buildKissMonthTabs();
+    renderVouchers();
+    updateKissBanner();
+  } catch(e) { toast('Load failed: '+e.message,'e'); }
+  hideLoader();
+}
+async function fetchSheet(name){ try{ const r=await api('GET',{action:'getSheet',token:DB.getToken(),sheet:name}); return r.data||[]; }catch(e){ return []; } }
+async function reload(){ VD.vouchers=await fetchSheet('Vouchers'); VD.kissVouchers=await fetchSheet('KissFMVouchers'); }
+
+function populateTypeFilters(){
+  const vTypes = getVoucherTypes();
+  const kTypes = getKissTypes();
+  const f = document.getElementById('vf-type');
+  f.innerHTML = '<option value="">All Types</option>' + vTypes.map(t=>`<option>${t}</option>`).join('');
+  const vs = document.getElementById('v-type');
+  vs.innerHTML = vTypes.map(t=>`<option>${t}</option>`).join('');
+  const ks = document.getElementById('k-type');
+  ks.innerHTML = kTypes.map(t=>`<option>${t}</option>`).join('');
+  updateSubTypes();
+}
+function updateSubTypes(){
+  // All subtypes shown regardless of type — full editable list from Settings
+  const subs = getVoucherSubtypes();
+  document.getElementById('v-subtype').innerHTML = subs.map(s=>`<option>${s}</option>`).join('');
+}
+
+// Month tabs
+function buildVMonthTabs(){
+  const el=document.getElementById('v-month-tabs'); if(!el)return;
+  el.innerHTML = `<div class="m-tab ${vCM===-1?'active':''}" onclick="setVCM(-1)">All</div>`+
+    FY_MONTHS.map((_,i)=>{const has=(VD.vouchers||[]).some(x=>x.fy_month==i);return`<div class="m-tab ${i===vCM?'active':''} ${has&&i!==vCM?'hd':''}" onclick="setVCM(${i})">${FY_SHORT[i]}</div>`;}).join('');
+}
+function buildKissMonthTabs(){
+  const el=document.getElementById('kiss-month-tabs'); if(!el)return;
+  el.innerHTML = FY_MONTHS.map((_,i)=>{const has=(VD.kissVouchers||[]).some(x=>x.fy_month==i);return`<div class="m-tab ${i===kissCM?'active':''} ${has&&i!==kissCM?'hd':''}" onclick="setKissCM(${i})">${FY_SHORT[i]}</div>`;}).join('');
+}
+function setVCM(i){ vCM=i; buildVMonthTabs(); renderVouchers(); }
+function setKissCM(i){ kissCM=i; buildKissMonthTabs(); renderKiss(); }
+
+function switchVTab(t){
+  document.getElementById('v-general').style.display = t==='general'?'block':'none';
+  document.getElementById('v-kiss').style.display    = t==='kiss'?'block':'none';
+  document.getElementById('vt-general').className='v-tab'+(t==='general'?' active':'');
+  document.getElementById('vt-kiss').className='v-tab'+(t==='kiss'?' active':'');
+  if(t==='kiss') renderKiss();
+}
+function showKissView(){ switchVTab('kiss'); }
+
+// Voucher status pill class
+function vStatusClass(s){
+  return s==='Active'?'v-status-active':s==='Redeemed'?'v-status-redeemed':s==='Expired'?'v-status-expired':'v-status-issued';
+}
+
+function renderVouchers(){
+  let v = VD.vouchers||[];
+  if(vCM>=0) v = v.filter(x=>x.fy_month==vCM);
+  const sf=document.getElementById('vf-status')?.value;
+  const tf=document.getElementById('vf-type')?.value;
+  if(sf) v=v.filter(x=>x.status===sf);
+  if(tf) v=v.filter(x=>x.voucher_type===tf);
+  const lbl = vCM===-1?'All Months':fyLabel(vCM);
+  document.getElementById('v-tbl-lbl').textContent=lbl;
+  document.getElementById('v-count').textContent=v.length+' vouchers';
+
+  const active=v.filter(x=>x.status==='Active').length;
+  const redeemed=v.filter(x=>x.status==='Redeemed').length;
+  const expired=v.filter(x=>x.status==='Expired').length;
+  const rRate=v.length>0?(redeemed/v.length*100).toFixed(0):0;
+
+  document.getElementById('v-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">Total Issued</div><div class="kpi-val">${v.length}</div><div class="kpi-sub">${lbl}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Active</div><div class="kpi-val">${active}</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Redeemed</div><div class="kpi-val">${redeemed}</div><span class="kpi-badge bgb">${rRate}% rate</span></div>
+    <div class="kpi k-r"><div class="kpi-lbl">Expired</div><div class="kpi-val">${expired}</div></div>`;
+
+  const today=new Date().toISOString().split('T')[0];
+  let rows='';
+  v.slice().sort((a,b)=>new Date(b.issue_date||0)-new Date(a.issue_date||0)).forEach(x=>{
+    const exp=fmtDate(x.expiry_date);
+    const isExpiring=exp&&exp>today&&new Date(exp)-new Date(today)<7*86400000;
+    rows+=`<tr>
+      <td style="font-family:monospace;font-weight:600;color:var(--red-light)">${x.voucher_code||'—'}</td>
+      <td><span class="pill pg">${x.voucher_type||'—'}</span></td>
+      <td style="font-size:11px">${x.sub_type||'—'}</td>
+      <td style="font-weight:500">${x.issued_to||'—'}</td>
+      <td style="font-size:11px">${x.requested_by||'—'}</td>
+      <td>${fmtDate(x.issue_date)||'—'}</td>
+      <td>${fmtDate(x.valid_from)||'—'}</td>
+      <td ${isExpiring?'style="color:var(--amber);font-weight:600"':''}>${exp||'—'}${isExpiring?' ⚠':''}</td>
+      <td>${fmtDate(x.redeem_date)||'—'}</td>
+      <td><span class="pill ${vStatusClass(x.status)}">${x.status||'—'}</span></td>
+      <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.notes||'—'}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-edit btn-sm" onclick="editVoucher('${x.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="delVoucher('${x.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('v-tbl-body').innerHTML=rows||`<tr><td colspan="12"><div class="empty"><div class="ei">🎫</div>No vouchers for this period.</div></td></tr>`;
+
+  // Show charts if data
+  if(v.length>0){
+    document.getElementById('v-charts').style.display='grid';
+    renderVCharts(v);
+  }
+}
+
+function renderVCharts(v){
+  kc('ch-v-type'); kc('ch-v-status');
+  const pal=['#C8102E','#3db870','#4a88d8','#d4800a','#9b7ac8','#4db8a0'];
+  const types=Object.keys(DEFAULT_V_TYPES);
+  const typeCounts=types.map(t=>v.filter(x=>x.voucher_type===t).length);
+  const tf=types.filter((_,i)=>typeCounts[i]>0);
+  CI['ch-v-type']=new Chart(document.getElementById('ch-v-type'),{type:'doughnut',data:{labels:tf.length?tf:['No data'],datasets:[{data:tf.length?types.filter((_,i)=>typeCounts[i]>0).map(t=>v.filter(x=>x.voucher_type===t).length):[1],backgroundColor:pal,borderWidth:2,borderColor:'#14141f'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#8a8682',boxWidth:10}}}}});
+  CI['ch-v-status']=new Chart(document.getElementById('ch-v-status'),{type:'doughnut',data:{labels:['Active','Redeemed','Expired','Cancelled'],datasets:[{data:['Active','Redeemed','Expired','Cancelled'].map(s=>v.filter(x=>x.status===s).length),backgroundColor:['#3db870','#4a88d8','#e04444','#8a8682'],borderWidth:2,borderColor:'#14141f'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#8a8682',boxWidth:10}}}}});
+}
+
+function updateKissBanner(){
+  const m=kissCM; const kv=VD.kissVouchers||[];
+  const thisMonth=kv.filter(x=>x.fy_month==m);
+  document.getElementById('ks-issued').textContent=thisMonth.length;
+  const QUOTA=getKissQuota();
+  document.getElementById('ks-remaining').textContent=Math.max(0,QUOTA-thisMonth.length);
+  document.getElementById('ks-redeemed').textContent=thisMonth.filter(x=>x.status==='Redeemed').length;
+  // Update banner sub text
+  document.querySelector('.kiss-sub').textContent=QUOTA+' vouchers per month · Unique codes · Separate agreement tracking';
+  document.getElementById('ks-expired').textContent=thisMonth.filter(x=>x.status==='Expired').length;
+}
+
+function renderKiss(){
+  const lbl=fyLabel(kissCM);
+  document.getElementById('kiss-tbl-lbl').textContent=lbl;
+  const kv=(VD.kissVouchers||[]).filter(x=>x.fy_month==kissCM);
+  document.getElementById('kiss-tbl-count').textContent=kv.length+'/'+getKissQuota();
+
+  const active=kv.filter(x=>x.status==='Active').length;
+  const redeemed=kv.filter(x=>x.status==='Redeemed').length;
+  const expired=kv.filter(x=>x.status==='Expired').length;
+  const QOTA=getKissQuota();
+  const remaining=Math.max(0,QOTA-kv.length);
+
+  document.getElementById('kiss-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">Issued — ${lbl}</div><div class="kpi-val">${kv.length}<span style="font-size:13px;color:var(--text-2)">/${getKissQuota()}</span></div>${progBar(kv.length/getKissQuota()*100)}</div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Redeemed</div><div class="kpi-val">${redeemed}</div><span class="kpi-badge bgg">${kv.length>0?(redeemed/kv.length*100).toFixed(0):0}% rate</span></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Remaining Quota</div><div class="kpi-val">${remaining}</div><div class="kpi-sub">vouchers left to issue</div></div>
+    <div class="kpi k-r"><div class="kpi-lbl">Expired / Active</div><div class="kpi-val">${expired} / ${active}</div></div>`;
+
+  let rows='';
+  kv.sort((a,b)=>new Date(a.issue_date||0)-new Date(b.issue_date||0)).forEach((x,i)=>{
+    rows+=`<tr>
+      <td style="font-family:monospace;font-weight:700;color:var(--red-light)">${x.voucher_code||'—'}</td>
+      <td><span class="pill pg">${x.voucher_type||'—'}</span></td>
+      <td style="font-weight:500">${x.issued_to||'—'}</td>
+      <td>${fmtDate(x.issue_date)||'—'}</td>
+      <td>${fmtDate(x.valid_from)||'—'}</td>
+      <td>${fmtDate(x.expiry_date)||'—'}</td>
+      <td>${fmtDate(x.redeem_date)||'—'}</td>
+      <td><span class="pill ${vStatusClass(x.status)}">${x.status||'—'}</span></td>
+      <td style="font-size:11px">${x.notes||'—'}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-edit btn-sm" onclick="editKiss('${x.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="delKiss('${x.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('kiss-tbl-body').innerHTML=rows||`<tr><td colspan="10"><div class="empty"><div class="ei">📻</div>No KissFM vouchers for ${lbl}. Click "+ Add KissFM Voucher" to start.</div></td></tr>`;
+
+  // Annual summary
+  let aRows='';
+  FY_MONTHS.forEach((_,mi)=>{
+    const m=(VD.kissVouchers||[]).filter(x=>x.fy_month==mi);
+    const issued=m.length, redeemed=m.filter(x=>x.status==='Redeemed').length;
+    const expired=m.filter(x=>x.status==='Expired').length, active=m.filter(x=>x.status==='Active').length;
+    const rem=Math.max(0,getKissQuota()-issued);
+    aRows+=`<tr ${mi===kissCM?'style="background:rgba(200,16,46,.04)"':''}><td><strong ${mi===kissCM?'style="color:var(--red-light)"':''}>${fyLabel(mi)}</strong></td>
+      <td class="mono">${issued}</td><td class="mono">${getKissQuota()}</td>
+      <td class="mono" style="color:${rem>0?'var(--amber)':'var(--green)'}">${rem}</td>
+      <td class="mono">${redeemed}</td><td class="mono">${expired}</td><td class="mono">${active}</td>
+      <td>${issued>0?`<span class="pill ${redeemed/issued>=0.5?'pgr':'pa'}">${(redeemed/issued*100).toFixed(0)}%</span>`:'—'}</td></tr>`;
+  });
+  document.getElementById('kiss-annual-tbl').innerHTML=aRows;
+  updateKissBanner();
+}
+
+// Code generators
+function genCode(){
+  const now=new Date(); const yr=now.getFullYear().toString().slice(-2);
+  const mo=String(now.getMonth()+1).padStart(2,'0');
+  const rand=String(Math.floor(Math.random()*900)+100);
+  document.getElementById('v-code').value=`CC-${yr}${mo}-${rand}`;
+}
+function genKissCode(){
+  const now=new Date(); const m=FY_SHORT[fyIdxNow()].toUpperCase();
+  const yr=now.getFullYear().toString().slice(-2);
+  const cnt=(VD.kissVouchers||[]).filter(x=>x.fy_month==kissCM).length+1;
+  document.getElementById('k-code').value=`KISS-${m}${yr}-${String(cnt).padStart(3,'0')}`;
+}
+
+// VOUCHER CRUD
+function openVoucherModal(){
+  clearVModal();
+  document.getElementById('v-modal-title').textContent='Issue New Voucher';
+  document.getElementById('v-issue-date').value=new Date().toISOString().split('T')[0];
+  openM('m-voucher');
+}
+function editVoucher(id){
+  const x=(VD.vouchers||[]).find(v=>v.id==id); if(!x)return;
+  clearVModal();
+  document.getElementById('v-modal-title').textContent='Edit Voucher';
+  document.getElementById('v-id').value=id;
+  document.getElementById('v-code').value=x.voucher_code||'';
+  document.getElementById('v-type').value=x.voucher_type||''; updateSubTypes();
+  document.getElementById('v-subtype').value=x.sub_type||'';
+  document.getElementById('v-issued-to').value=x.issued_to||'';
+  document.getElementById('v-requested-by').value=x.requested_by||'';
+  document.getElementById('v-issue-date').value=fmtDate(x.issue_date)||'';
+  document.getElementById('v-valid-from').value=fmtDate(x.valid_from)||'';
+  document.getElementById('v-expiry').value=fmtDate(x.expiry_date)||'';
+  document.getElementById('v-redeem-date').value=fmtDate(x.redeem_date)||'';
+  document.getElementById('v-status').value=x.status||'Active';
+  document.getElementById('v-notes').value=x.notes||'';
+  openM('m-voucher');
+}
+function clearVModal(){
+  document.getElementById('v-id').value='';
+  ['v-code','v-issued-to','v-requested-by','v-issue-date','v-valid-from','v-expiry','v-redeem-date','v-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('v-status').value='Active';
+}
+async function saveVoucher(){
+  const code=document.getElementById('v-code').value.trim();
+  const type=document.getElementById('v-type').value;
+  const eid=document.getElementById('v-id').value;
+  if(!code||!type){toast('Voucher code and type are required.','e');return;}
+  const iDate=document.getElementById('v-issue-date').value;
+  const p={
+    fy:FY, fy_month:iDate?fyIdx(iDate):fyIdxNow(),
+    voucher_code:code, voucher_type:type,
+    sub_type:document.getElementById('v-subtype').value,
+    issued_to:document.getElementById('v-issued-to').value,
+    requested_by:document.getElementById('v-requested-by').value,
+    issue_date:iDate, valid_from:document.getElementById('v-valid-from').value,
+    expiry_date:document.getElementById('v-expiry').value,
+    redeem_date:document.getElementById('v-redeem-date').value,
+    status:document.getElementById('v-status').value,
+    notes:document.getElementById('v-notes').value
+  };
+  showLoader(eid?'Updating...':'Saving...');
+  try{
+    if(eid) await DB.update('VOUCHERS',eid,p); else await DB.add('VOUCHERS',p);
+    await reload(); closeM('m-voucher'); buildVMonthTabs(); renderVouchers();
+    toast(eid?'Voucher updated!':'Voucher issued!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delVoucher(id){
+  if(!confirm('Delete this voucher?'))return;
+  showLoader('Deleting...');
+  try{ await DB.remove('VOUCHERS',id); await reload(); buildVMonthTabs(); renderVouchers(); toast('Deleted.'); }
+  catch(e){toast('Failed: '+e.message,'e');} hideLoader();
+}
+
+// KISSFM CRUD
+function openKissModal(){
+  clearKModal();
+  document.getElementById('kiss-modal-title').textContent='Add KissFM Voucher';
+  document.getElementById('k-issue-date').value=new Date().toISOString().split('T')[0];
+  openM('m-kiss');
+}
+function editKiss(id){
+  const x=(VD.kissVouchers||[]).find(v=>v.id==id); if(!x)return;
+  clearKModal();
+  document.getElementById('kiss-modal-title').textContent='Edit KissFM Voucher';
+  document.getElementById('k-id').value=id;
+  document.getElementById('k-code').value=x.voucher_code||'';
+  document.getElementById('k-type').value=x.voucher_type||'';
+  document.getElementById('k-issued-to').value=x.issued_to||'';
+  document.getElementById('k-issue-date').value=fmtDate(x.issue_date)||'';
+  document.getElementById('k-valid-from').value=fmtDate(x.valid_from)||'';
+  document.getElementById('k-expiry').value=fmtDate(x.expiry_date)||'';
+  document.getElementById('k-redeem-date').value=fmtDate(x.redeem_date)||'';
+  document.getElementById('k-status').value=x.status||'Active';
+  document.getElementById('k-notes').value=x.notes||'';
+  openM('m-kiss');
+}
+function clearKModal(){
+  document.getElementById('k-id').value='';
+  ['k-code','k-issued-to','k-issue-date','k-valid-from','k-expiry','k-redeem-date','k-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('k-status').value='Active';
+}
+async function saveKissVoucher(){
+  const code=document.getElementById('k-code').value.trim();
+  const type=document.getElementById('k-type').value;
+  const eid=document.getElementById('k-id').value;
+  if(!code){toast('KissFM voucher code is required.','e');return;}
+  const iDate=document.getElementById('k-issue-date').value;
+  const p={
+    fy:FY, fy_month:iDate?fyIdx(iDate):fyIdxNow(),
+    voucher_code:code, voucher_type:type,
+    issued_to:document.getElementById('k-issued-to').value,
+    issue_date:iDate, valid_from:document.getElementById('k-valid-from').value,
+    expiry_date:document.getElementById('k-expiry').value,
+    redeem_date:document.getElementById('k-redeem-date').value,
+    status:document.getElementById('k-status').value,
+    notes:document.getElementById('k-notes').value,
+    source:'KissFM'
+  };
+  // Check monthly quota
+  const monthCount=(VD.kissVouchers||[]).filter(x=>x.fy_month==(iDate?fyIdx(iDate):fyIdxNow())&&(!eid||x.id!=eid)).length;
+  if(!eid && monthCount>=getKissQuota()){ if(!confirm('⚠ You have already issued '+getKissQuota()+' KissFM vouchers this month (full quota). Add anyway?')) return; }
+  showLoader(eid?'Updating...':'Saving...');
+  try{
+    if(eid) await DB.update('KISS_FM_VOUCHERS',eid,p); else await DB.add('KISS_FM_VOUCHERS',p);
+    await reload(); closeM('m-kiss'); buildKissMonthTabs(); renderKiss(); updateKissBanner();
+    toast(eid?'KissFM voucher updated!':'KissFM voucher saved!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delKiss(id){
+  if(!confirm('Delete this KissFM voucher?'))return;
+  showLoader('Deleting...');
+  try{ await DB.remove('KISS_FM_VOUCHERS',id); await reload(); buildKissMonthTabs(); renderKiss(); toast('Deleted.'); }
+  catch(e){toast('Failed: '+e.message,'e');} hideLoader();
+}
+
+
+// ── VOUCHER DOWNLOADS ─────────────────────────────
+function buildVoucherReportData(v, lbl, includeKiss){
+  const allV = includeKiss ? [...(VD.vouchers||[]), ...(VD.kissVouchers||[]).map(x=>({...x,voucher_type:'KissFM: '+(x.voucher_type||'')}))] : (VD.vouchers||[]);
+  const filtered = lbl==='All' ? allV : allV.filter(x=>x.fy_month==vCM);
+  return filtered;
+}
+
+function dlVouchersPDF(){
+  const v = VD.vouchers||[];
+  const kv = VD.kissVouchers||[];
+  const lbl = vCM===-1?'All Months':fyLabel(vCM);
+  const filtered = vCM===-1?v:v.filter(x=>x.fy_month==vCM);
+  const kFiltered = vCM===-1?kv:kv.filter(x=>x.fy_month==vCM);
+  const active=filtered.filter(x=>x.status==='Active').length;
+  const redeemed=filtered.filter(x=>x.status==='Redeemed').length;
+  const expired=filtered.filter(x=>x.status==='Expired').length;
+  const kActive=kFiltered.filter(x=>x.status==='Active').length;
+  const kRedeemed=kFiltered.filter(x=>x.status==='Redeemed').length;
+  const quota=getKissQuota();
+
+  const vRows=filtered.slice().sort((a,b)=>new Date(b.issue_date||0)-new Date(a.issue_date||0)).map(x=>`<tr>
+    <td style="font-family:monospace;font-weight:600;color:#C8102E">${x.voucher_code||'—'}</td>
+    <td><span class="pill pill-r">${x.voucher_type||'—'}</span></td>
+    <td>${x.sub_type||'—'}</td>
+    <td>${x.issued_to||'—'}</td>
+    <td>${fmtDate(x.issue_date)||'—'}</td>
+    <td>${fmtDate(x.expiry_date)||'—'}</td>
+    <td>${fmtDate(x.redeem_date)||'—'}</td>
+    <td><span class="pill ${x.status==='Active'?'pill-g':x.status==='Redeemed'?'pill-b':'pill-r'}">${x.status||'—'}</span></td>
+  </tr>`).join('');
+
+  const kRows=kFiltered.map(x=>`<tr>
+    <td style="font-family:monospace;font-weight:700;color:#C8102E">${x.voucher_code||'—'}</td>
+    <td>${x.voucher_type||'—'}</td>
+    <td>${x.issued_to||'—'}</td>
+    <td>${fmtDate(x.issue_date)||'—'}</td>
+    <td>${fmtDate(x.expiry_date)||'—'}</td>
+    <td>${fmtDate(x.redeem_date)||'—'}</td>
+    <td><span class="pill ${x.status==='Active'?'pill-g':x.status==='Redeemed'?'pill-b':'pill-r'}">${x.status||'—'}</span></td>
+  </tr>`).join('');
+
+  const html=`<div class="rpt-page">
+    <div class="rpt-hdr">
+      <div class="rpt-logo"><div class="rpt-logo-mark">CC</div><div><div class="rpt-hotel">Colombo Court Hotel &amp; Spa</div><div class="rpt-dept">Marketing Hub</div></div></div>
+      <div class="rpt-title-block"><div class="rpt-title">Voucher Report</div><div class="rpt-period">${lbl} · FY ${FY}–${String(FY+1).slice(-2)}</div><div class="rpt-generated">Generated ${rDate()}</div></div>
+    </div>
+    <div class="kpi-row k4">
+      <div class="kpi red"><div class="kpi-lbl">General Issued</div><div class="kpi-val">${filtered.length}</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Active</div><div class="kpi-val">${active}</div></div>
+      <div class="kpi blue"><div class="kpi-lbl">Redeemed</div><div class="kpi-val">${redeemed}</div><span class="kpi-badge bgr">${filtered.length>0?(redeemed/filtered.length*100).toFixed(0):0}%</span></div>
+      <div class="kpi red"><div class="kpi-lbl">KissFM Issued</div><div class="kpi-val">${kFiltered.length}<span style="font-size:11px;color:#888">/${quota}</span></div></div>
+    </div>
+    ${filtered.length>0?`<div class="rpt-sec">🎫 General Vouchers</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Code</th><th>Type</th><th>Sub-type</th><th>Issued To</th><th>Issue Date</th><th>Expiry</th><th>Redeemed</th><th>Status</th></tr></thead>
+      <tbody>${vRows}</tbody>
+    </table></div>`:''}
+    ${kFiltered.length>0?`<div class="rpt-sec">📻 KissFM Vouchers</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>KissFM Code</th><th>Type</th><th>Issued To</th><th>Issue Date</th><th>Expiry</th><th>Redeemed</th><th>Status</th></tr></thead>
+      <tbody>${kRows}</tbody>
+    </table></div>`:''}
+    <div class="rpt-footer"><span>Colombo Court Hotel &amp; Spa — Marketing Hub</span><span>Voucher Report · ${lbl}</span><span>Confidential</span></div>
+  </div>`;
+
+  printReport(html, 'Voucher Report — '+lbl);
+}
+
+function dlVouchersExcel(){
+  const lbl = vCM===-1?'All_Months':fyLabel(vCM).replace(/ /g,'_');
+  const vData = vCM===-1?VD.vouchers||[]:(VD.vouchers||[]).filter(x=>x.fy_month==vCM);
+  const kData = kissCM!=null?(VD.kissVouchers||[]).filter(x=>x.fy_month==kissCM):(VD.kissVouchers||[]);
+
+  const vHeaders=['Voucher Code','Type','Sub-type','Issued To','Requested By','Issue Date','Valid From','Expiry Date','Redeem Date','Status','Notes'];
+  const vRows=vData.map(x=>[x.voucher_code||'',x.voucher_type||'',x.sub_type||'',x.issued_to||'',x.requested_by||'',fmtDate(x.issue_date)||'',fmtDate(x.valid_from)||'',fmtDate(x.expiry_date)||'',fmtDate(x.redeem_date)||'',x.status||'',x.notes||'']);
+  const kHeaders=['KissFM Code','Type','Issued To','Issue Date','Valid From','Expiry Date','Redeem Date','Status','Notes'];
+  const kRows=kData.map(x=>[x.voucher_code||'',x.voucher_type||'',x.issued_to||'',fmtDate(x.issue_date)||'',fmtDate(x.valid_from)||'',fmtDate(x.expiry_date)||'',fmtDate(x.redeem_date)||'',x.status||'',x.notes||'']);
+
+  downloadExcel([
+    {name:'General Vouchers',data:[vHeaders,...vRows],colWidths:[16,14,16,18,16,13,13,13,13,12,20]},
+    {name:'KissFM Vouchers',data:[kHeaders,...kRows],colWidths:[16,14,18,13,13,13,13,12,20]},
+  ], 'vouchers_'+lbl+'.xlsx');
+}
+
+load();
+</script>
+</body>
+</html>

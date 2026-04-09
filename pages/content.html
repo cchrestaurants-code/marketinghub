@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Content Log — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+  <header class="topbar">
+    <div><div class="tb-title">Social Content Log</div><div class="tb-sub">All posts, reels, videos across platforms — engagement tracking & growth</div></div>
+    <div class="tb-r">
+      <span class="fy-chip">FY 2026–27</span>
+      <select id="plat-filter" onchange="render()" style="background:var(--bg-3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;font-family:Poppins,sans-serif;color:var(--text);outline:none">
+        <option value="all">All Platforms</option>
+        <option>Instagram</option>
+        <option>Facebook</option>
+        <option>TikTok</option>
+        <option>YouTube</option>
+        <option>LinkedIn</option>
+      </select>
+      <button class="btn btn-gold" onclick="openPostModal()">+ Log Content</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- Overall annual KPIs -->
+    <div class="sec" style="margin-top:0"><div class="sec-t">Annual Overview — All Platforms</div></div>
+    <div class="kpi-row k4" id="ann-kpis"></div>
+
+    <!-- Annual charts -->
+    <div class="ch-row ch-2">
+      <div class="ch-card">
+        <div class="ch-title">Monthly Engagement Growth</div>
+        <div class="ch-sub">Total likes + comments + shares + saves across all platforms</div>
+        <canvas id="ch-eng-trend"></canvas>
+      </div>
+      <div class="ch-card">
+        <div class="ch-title">Engagements by Platform</div>
+        <div class="ch-sub">Which platform drives the most engagement YTD</div>
+        <canvas id="ch-plat-eng"></canvas>
+      </div>
+    </div>
+    <div class="ch-row ch-2">
+      <div class="ch-card">
+        <div class="ch-title">Content Type Performance</div>
+        <div class="ch-sub">Average engagement per post type — Reel vs Post vs Video</div>
+        <canvas id="ch-type-perf"></canvas>
+      </div>
+      <div class="ch-card">
+        <div class="ch-title">Monthly Posts Published</div>
+        <div class="ch-sub">Volume of content published per month per platform</div>
+        <canvas id="ch-posts"></canvas>
+      </div>
+    </div>
+
+    <!-- Month tabs + filter -->
+    <div class="sec">
+      <div class="sec-t" id="m-lbl">—</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-out btn-sm" onclick="setView('month')">Month View</button>
+        <button class="btn btn-out btn-sm" onclick="setView('all')">Full Year</button>
+      </div>
+    </div>
+    <div class="m-tabs" id="m-tabs"></div>
+
+    <!-- Month KPIs -->
+    <div class="kpi-row k4" id="m-kpis"></div>
+
+    <!-- Platform breakdown for month -->
+    <div class="ch-row ch-2" id="plat-charts">
+      <div class="ch-card">
+        <div class="ch-title">This Month — Engagement by Platform</div>
+        <div class="ch-sub">Breakdown for selected month</div>
+        <canvas id="ch-m-plat"></canvas>
+      </div>
+      <div class="ch-card">
+        <div class="ch-title">This Month — Content by Type</div>
+        <div class="ch-sub">Posts vs Reels vs Videos vs Stories</div>
+        <canvas id="ch-m-type"></canvas>
+      </div>
+    </div>
+
+    <!-- Content table -->
+    <div class="tc">
+      <div class="tc-head">
+        <div class="tc-title">Content Log — <span id="tbl-lbl">All</span></div>
+        <span class="pill pg" id="post-count">0 posts</span>
+      </div>
+      <div class="overflow-x">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Platform</th><th>Content Type</th><th>Title / Description</th>
+            <th>Reach</th><th>Impressions</th><th>Likes</th><th>Comments</th>
+            <th>Shares</th><th>Saves</th><th>Views</th>
+            <th>Eng. Rate %</th><th>Link</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="content-tbl"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ADD/EDIT POST MODAL -->
+<div class="overlay" id="m-post">
+  <div class="modal wide">
+    <div class="modal-hd"><div class="modal-t" id="post-modal-t">Log Content</div><button class="modal-x" onclick="closeM('m-post')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg">
+        <div class="fr"><label>Post Date</label><input type="date" id="p-date"></div>
+        <div class="fr"><label>Platform</label>
+          <select id="p-plat">
+            <option>Instagram</option><option>Facebook</option><option>TikTok</option>
+            <option>YouTube</option><option>LinkedIn</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Content Type</label>
+          <select id="p-type">
+            <option>Reel</option><option>Post (Image)</option><option>Post (Carousel)</option>
+            <option>Story</option><option>Video</option><option>Short</option>
+            <option>Article</option><option>Live</option><option>Other</option>
+          </select>
+        </div>
+        <div class="fr"><label>Title / Description</label><input type="text" id="p-title" placeholder="Brief description of the content"></div>
+      </div>
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📊 Performance Metrics</div>
+        <div class="fg3">
+          <div class="fr"><label>Reach</label><input type="number" id="p-reach" placeholder="0" oninput="calcEngRate()"></div>
+          <div class="fr"><label>Impressions</label><input type="number" id="p-imp" placeholder="0"></div>
+          <div class="fr"><label>Views</label><input type="number" id="p-views" placeholder="0"></div>
+        </div>
+        <div class="fg3">
+          <div class="fr"><label>Likes</label><input type="number" id="p-likes" placeholder="0" oninput="calcEngRate()"></div>
+          <div class="fr"><label>Comments</label><input type="number" id="p-comments" placeholder="0" oninput="calcEngRate()"></div>
+          <div class="fr"><label>Shares</label><input type="number" id="p-shares" placeholder="0" oninput="calcEngRate()"></div>
+        </div>
+        <div class="fg3">
+          <div class="fr"><label>Saves</label><input type="number" id="p-saves" placeholder="0" oninput="calcEngRate()"></div>
+          <div class="fr"><label>Link Clicks</label><input type="number" id="p-linkclicks" placeholder="0"></div>
+          <div class="fr">
+            <label>Engagement Rate % <span style="color:var(--green);font-size:9px">AUTO</span></label>
+            <input type="text" id="p-engrate" readonly style="opacity:.7;cursor:not-allowed;color:var(--gold);font-weight:600">
+          </div>
+        </div>
+      </div>
+      <div class="fr"><label>Post URL / Link</label><input type="text" id="p-link" placeholder="https://..."></div>
+      <input type="hidden" id="p-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-post')">Cancel</button>
+      <button class="btn btn-gold" onclick="savePost()" id="p-save">Log Content</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('content');
+requireAuth();
+let D={posts:[]}, cm=fyIdxNow(), viewMode='month';
+const CI={};
+function kc(id){if(CI[id]){CI[id].destroy();delete CI[id];}}
+const PAL=['#b8956a','#4db87a','#e05555','#d48040','#5a90d8','#9b7ac8'];
+const PLATS=['Instagram','Facebook','TikTok','YouTube','LinkedIn'];
+
+async function load(){
+  showLoader('Loading Content Log...');
+  try{
+    const r=await DB.getAll();
+    D=r;
+    D.posts=await loadPosts();
+    renderSidebar(r.user,r.sidebarFields);
+    renderTabs();render();
+  }catch(e){toast('Load failed: '+e.message,'e');}
+  hideLoader();
+}
+async function loadPosts(){
+  try{const r=await api('GET',{action:'getSheet',token:DB.getToken(),sheet:'ContentLog'});return(r.data||[]).filter(x=>x.fy==FY);}
+  catch(e){return[];}
+}
+
+function getPlatFilter(){return document.getElementById('plat-filter').value;}
+function filteredPosts(posts){const pf=getPlatFilter();return pf==='all'?posts:posts.filter(p=>p.platform===pf);}
+function engTotal(p){return Number(p.likes||0)+Number(p.comments||0)+Number(p.shares||0)+Number(p.saves||0);}
+
+function renderTabs(){
+  document.getElementById('m-tabs').innerHTML=FY_MONTHS.map((m,i)=>{
+    const hd=(D.posts||[]).filter(p=>p.fy_month==i).length>0;
+    return`<div class="m-tab ${i===cm?'active':''} ${hd&&i!==cm?'hd':''}" onclick="setCM(${i})">${FY_SHORT[i]}</div>`;
+  }).join('');
+}
+function setCM(i){cm=i;viewMode='month';renderTabs();render();}
+function setView(v){viewMode=v;render();}
+
+function calcEngRate(){
+  const reach=parseFloat(document.getElementById('p-reach').value)||0;
+  const likes=parseFloat(document.getElementById('p-likes').value)||0;
+  const comments=parseFloat(document.getElementById('p-comments').value)||0;
+  const shares=parseFloat(document.getElementById('p-shares').value)||0;
+  const saves=parseFloat(document.getElementById('p-saves').value)||0;
+  const eng=likes+comments+shares+saves;
+  document.getElementById('p-engrate').value=reach>0?(eng/reach*100).toFixed(2)+'%':'—';
+}
+
+function render(){
+  const all=filteredPosts(D.posts||[]);
+  const lbl=fyLabel(cm);
+  document.getElementById('m-lbl').textContent=viewMode==='all'?'All Content — FY 2026–27':lbl;
+  document.getElementById('tbl-lbl').textContent=viewMode==='all'?'All Months':lbl;
+
+  // Annual KPIs
+  const totPosts=all.length;
+  const totEng=all.reduce((a,p)=>a+engTotal(p),0);
+  const totReach=all.reduce((a,p)=>a+Number(p.reach||0),0);
+  const avgER=all.length>0?(all.reduce((a,p)=>a+Number(p.engagement_rate||0),0)/all.length).toFixed(2):0;
+  document.getElementById('ann-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">Total Posts YTD</div><div class="kpi-val">${totPosts}</div><div class="kpi-sub">across all platforms</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Total Engagements</div><div class="kpi-val">${totEng.toLocaleString()}</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Total Reach</div><div class="kpi-val">${fmtK(totReach)}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Avg Engagement Rate</div><div class="kpi-val">${avgER}%</div></div>`;
+
+  // Annual charts
+  kc('ch-eng-trend');kc('ch-plat-eng');kc('ch-type-perf');kc('ch-posts');
+  const monthEng=FY_MONTHS.map((_,i)=>filteredPosts(D.posts||[]).filter(p=>p.fy_month==i).reduce((a,p)=>a+engTotal(p),0));
+  CI['ch-eng-trend']=new Chart(document.getElementById('ch-eng-trend'),{type:'line',data:{labels:FY_SHORT,datasets:[{label:'Total Engagements',data:monthEng,borderColor:'#b8956a',backgroundColor:'rgba(184,149,106,0.08)',borderWidth:2,pointRadius:4,pointBackgroundColor:'#b8956a',fill:true,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}}});
+
+  const platEng={};PLATS.forEach(pl=>{platEng[pl]=(D.posts||[]).filter(p=>p.platform===pl).reduce((a,p)=>a+engTotal(p),0);});
+  CI['ch-plat-eng']=new Chart(document.getElementById('ch-plat-eng'),{type:'doughnut',data:{labels:PLATS,datasets:[{data:PLATS.map(pl=>platEng[pl]),backgroundColor:PAL,borderWidth:2,borderColor:'#181826'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#9a9590',boxWidth:10}}}}});
+
+  const types=['Reel','Post (Image)','Post (Carousel)','Video','Story','Other'];
+  const typeAvg=types.map(t=>{const tp=(D.posts||[]).filter(p=>p.content_type===t);return tp.length>0?tp.reduce((a,p)=>a+engTotal(p),0)/tp.length:0;});
+  CI['ch-type-perf']=new Chart(document.getElementById('ch-type-perf'),{type:'bar',data:{labels:types,datasets:[{label:'Avg Engagements',data:typeAvg,backgroundColor:'rgba(184,149,106,0.45)',borderColor:'#b8956a',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}}});
+
+  const monthPostData=PLATS.map(pl=>({label:pl,data:FY_MONTHS.map((_,i)=>(D.posts||[]).filter(p=>p.platform===pl&&p.fy_month==i).length),backgroundColor:PAL[PLATS.indexOf(pl)]+'99',borderColor:PAL[PLATS.indexOf(pl)],borderWidth:1.5,borderRadius:2}));
+  CI['ch-posts']=new Chart(document.getElementById('ch-posts'),{type:'bar',data:{labels:FY_SHORT,datasets:monthPostData},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:10},color:'#9a9590',boxWidth:8}}},scales:{x:{stacked:true,ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}},y:{stacked:true,ticks:{color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}}});
+
+  // Month KPIs
+  const mPosts=filteredPosts(D.posts||[]).filter(p=>p.fy_month==cm);
+  const mEng=mPosts.reduce((a,p)=>a+engTotal(p),0);
+  const mReach=mPosts.reduce((a,p)=>a+Number(p.reach||0),0);
+  const mAvgER=mPosts.length>0?(mPosts.reduce((a,p)=>a+Number(p.engagement_rate||0),0)/mPosts.length).toFixed(2):0;
+  document.getElementById('m-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">${FY_MONTHS[cm]} Posts</div><div class="kpi-val">${mPosts.length}</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Engagements</div><div class="kpi-val">${mEng.toLocaleString()}</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Reach</div><div class="kpi-val">${fmtK(mReach)}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Avg Eng Rate</div><div class="kpi-val">${mAvgER}%</div></div>`;
+
+  // Month charts
+  kc('ch-m-plat');kc('ch-m-type');
+  const mPlatEng={};PLATS.forEach(pl=>{mPlatEng[pl]=mPosts.filter(p=>p.platform===pl).reduce((a,p)=>a+engTotal(p),0);});
+  CI['ch-m-plat']=new Chart(document.getElementById('ch-m-plat'),{type:'doughnut',data:{labels:PLATS,datasets:[{data:PLATS.map(pl=>mPlatEng[pl]),backgroundColor:PAL,borderWidth:2,borderColor:'#181826'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#9a9590',boxWidth:10}}}}});
+  const mTypeEng={};mPosts.forEach(p=>{const t=p.content_type||'Other';mTypeEng[t]=(mTypeEng[t]||0)+engTotal(p);});
+  CI['ch-m-type']=new Chart(document.getElementById('ch-m-type'),{type:'doughnut',data:{labels:Object.keys(mTypeEng).length?Object.keys(mTypeEng):['No data'],datasets:[{data:Object.keys(mTypeEng).length?Object.values(mTypeEng):[1],backgroundColor:PAL,borderWidth:2,borderColor:'#181826'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#9a9590',boxWidth:10}}}}});
+
+  // Table
+  const display=viewMode==='all'?filteredPosts(D.posts||[]):mPosts;
+  document.getElementById('post-count').textContent=display.length+' posts';
+  let rows='';
+  display.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0)).forEach(p=>{
+    const er=Number(p.engagement_rate||0);
+    rows+=`<tr>
+      <td>${p.date||'—'}</td>
+      <td><span class="pill pg">${p.platform||'—'}</span></td>
+      <td><span class="pill pb">${p.content_type||'—'}</span></td>
+      <td style="max-width:180px;font-weight:500;font-size:11.5px">${p.title||'—'}</td>
+      <td class="mono">${Number(p.reach||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.impressions||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.likes||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.comments||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.shares||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.saves||0).toLocaleString()}</td>
+      <td class="mono">${Number(p.views||0).toLocaleString()}</td>
+      <td><span class="pill ${er>=3?'pgr':er>=1?'pa':'pr'}">${er.toFixed(2)}%</span></td>
+      <td>${p.post_link?`<a href="${p.post_link}" target="_blank" style="color:var(--blue);font-size:11px">View →</a>`:'—'}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-edit btn-sm" onclick="editPost('${p.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="delPost('${p.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('content-tbl').innerHTML=rows||`<tr><td colspan="14"><div class="empty"><div class="ei">📱</div>No content logged yet.</div></td></tr>`;
+}
+
+function openPostModal(){
+  document.getElementById('post-modal-t').textContent='Log Content';
+  document.getElementById('p-save').textContent='Log Content';
+  document.getElementById('p-id').value='';
+  document.getElementById('p-date').value=new Date().toISOString().split('T')[0];
+  ['p-title','p-link'].forEach(id=>document.getElementById(id).value='');
+  ['p-reach','p-imp','p-views','p-likes','p-comments','p-shares','p-saves','p-linkclicks'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('p-engrate').value='';
+  openM('m-post');
+}
+function editPost(id){
+  const p=(D.posts||[]).find(x=>x.id==id);if(!p)return;
+  document.getElementById('post-modal-t').textContent='Edit Content';
+  document.getElementById('p-save').textContent='Update';
+  document.getElementById('p-id').value=id;
+  document.getElementById('p-date').value=p.date||'';
+  document.getElementById('p-plat').value=p.platform||'Instagram';
+  document.getElementById('p-type').value=p.content_type||'Reel';
+  document.getElementById('p-title').value=p.title||'';
+  document.getElementById('p-reach').value=p.reach||'';
+  document.getElementById('p-imp').value=p.impressions||'';
+  document.getElementById('p-views').value=p.views||'';
+  document.getElementById('p-likes').value=p.likes||'';
+  document.getElementById('p-comments').value=p.comments||'';
+  document.getElementById('p-shares').value=p.shares||'';
+  document.getElementById('p-saves').value=p.saves||'';
+  document.getElementById('p-linkclicks').value=p.link_clicks||'';
+  document.getElementById('p-link').value=p.post_link||'';
+  calcEngRate();
+  openM('m-post');
+}
+async function savePost(){
+  const eid=document.getElementById('p-id').value;
+  const date=document.getElementById('p-date').value;
+  const reach=parseFloat(document.getElementById('p-reach').value)||0;
+  const likes=parseFloat(document.getElementById('p-likes').value)||0;
+  const comments=parseFloat(document.getElementById('p-comments').value)||0;
+  const shares=parseFloat(document.getElementById('p-shares').value)||0;
+  const saves=parseFloat(document.getElementById('p-saves').value)||0;
+  const eng=likes+comments+shares+saves;
+  const p={
+    fy:FY, fy_month:date?fyIdx(date):cm, date,
+    platform:document.getElementById('p-plat').value,
+    content_type:document.getElementById('p-type').value,
+    title:document.getElementById('p-title').value,
+    reach, impressions:parseFloat(document.getElementById('p-imp').value)||0,
+    views:parseFloat(document.getElementById('p-views').value)||0,
+    likes, comments, shares, saves,
+    link_clicks:parseFloat(document.getElementById('p-linkclicks').value)||0,
+    engagement_rate:reach>0?(eng/reach*100).toFixed(2):0,
+    post_link:document.getElementById('p-link').value
+  };
+  showLoader(eid?'Updating...':'Saving...');
+  try{
+    if(eid)await DB.update('CONTENT_LOG',eid,p);
+    else await DB.add('CONTENT_LOG',p);
+    D.posts=await loadPosts();
+    closeM('m-post');renderTabs();render();
+    toast(eid?'Updated!':'Content logged!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delPost(id){
+  if(!confirm('Delete?'))return;
+  showLoader('Deleting...');
+  try{await DB.remove('CONTENT_LOG',id);D.posts=await loadPosts();renderTabs();render();toast('Deleted.');}
+  catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+load();
+</script>
+</body>
+</html>

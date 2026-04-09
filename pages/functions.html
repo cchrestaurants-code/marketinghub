@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Functions & Events — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+<script src="../js/reports.js"></script>
+<style>
+/* ── Page-specific additions ─────────────────────── */
+.view-btn-row { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.view-btn-row .vb { padding:6px 14px; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--border-2); color:var(--text-2); background:transparent; font-family:'Poppins',sans-serif; transition:all .14s; }
+.view-btn-row .vb:hover { border-color:var(--gold); color:var(--gold); }
+.view-btn-row .vb.active { background:var(--gold); color:#fff; border-color:var(--gold); }
+
+.filter-row { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+.filter-row select { background:var(--bg-3); border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-size:11.5px; font-family:'Poppins',sans-serif; color:var(--text); outline:none; cursor:pointer; }
+.filter-row select:focus { border-color:var(--gold); }
+
+/* Inquiry cards */
+.inq-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px; }
+@media(max-width:1300px){ .inq-grid{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:800px){ .inq-grid{grid-template-columns:1fr} }
+
+.inq-card { background:var(--bg-3); border:1px solid var(--border); border-radius:9px; padding:14px 16px; position:relative; transition:border .15s; border-left:3px solid transparent; }
+.inq-card:hover { border-color:var(--border-2); }
+.inq-card.card-pending    { border-left-color:var(--blue); }
+.inq-card.card-shared     { border-left-color:var(--amber); }
+.inq-card.card-confirmed  { border-left-color:var(--green); }
+.inq-card.card-cancelled  { border-left-color:var(--red); opacity:.75; }
+.inq-card.card-lost       { border-left-color:var(--red); opacity:.65; }
+.inq-card.card-overdue    { border-left-color:var(--red) !important; box-shadow:0 0 0 1px rgba(224,85,85,.12) inset; }
+.inq-card.card-followup-today { border-left-color:var(--amber) !important; }
+
+.inq-name { font-size:13.5px; font-weight:600; color:var(--text); margin-bottom:2px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.inq-contact { font-size:11px; color:var(--text-2); margin-bottom:9px; }
+.inq-detail-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.03); }
+.inq-detail-row:last-of-type { border:none; }
+.inq-detail-row .dl { color:var(--text-2); }
+.inq-detail-row .dv { font-weight:500; color:var(--text); text-align:right; max-width:160px; }
+.inq-actions { display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; }
+.inq-remarks { font-size:10.5px; color:var(--text-2); margin-top:7px; padding-top:6px; border-top:1px solid var(--border); line-height:1.5; }
+
+/* Badges */
+.repeat-badge { display:inline-block; background:rgba(212,128,64,.15); border:1px solid rgba(212,128,64,.3); color:var(--amber); font-size:9px; font-weight:600; padding:1px 6px; border-radius:10px; letter-spacing:.4px; }
+.cap-warning  { display:inline-block; background:var(--red-bg); border:1px solid rgba(224,85,85,.2); color:var(--red); font-size:9px; font-weight:600; padding:1px 6px; border-radius:10px; }
+
+/* Follow-up chips */
+.fu-chip { display:inline-block; font-size:9.5px; font-weight:500; padding:2px 8px; border-radius:10px; margin-top:5px; }
+.fu-overdue  { background:var(--red-bg); color:var(--red); }
+.fu-today    { background:var(--amber-bg); color:var(--amber); }
+.fu-upcoming { background:var(--blue-bg); color:var(--blue); }
+
+/* Guest search in modal */
+.guest-search-result { background:var(--bg-4); border:1px solid var(--border-g); border-radius:7px; padding:9px 13px; margin-bottom:6px; cursor:pointer; transition:all .14s; }
+.guest-search-result:hover { border-color:var(--gold); background:var(--gold-bg); }
+.guest-search-result .gsname { font-size:12.5px; font-weight:600; color:var(--text); }
+.guest-search-result .gssub  { font-size:10.5px; color:var(--text-2); margin-top:2px; }
+
+/* Quick add highlight */
+.quick-banner { background:var(--gold-bg); border:1.5px dashed var(--border-g); border-radius:9px; padding:13px 18px; display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; cursor:pointer; transition:all .14s; }
+.quick-banner:hover { background:rgba(184,149,106,.14); border-color:var(--gold); }
+
+/* Budget meter */
+.bud-meter { background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
+.bud-meter-lbl { font-size:10px; font-weight:500; color:var(--text-2); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
+.bud-meter-val { font-size:18px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.bud-meter-sub { font-size:10.5px; color:var(--text-2); margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="tb-title">Functions & Events</div>
+      <div class="tb-sub">Inquiry tracking · Conversion analytics · Revenue budgets — FY Apr 2026 – Mar 2027</div>
+    </div>
+    <div class="tb-r">
+      <span class="fy-chip">LKR · FY 2026–27</span>
+      <button class="btn btn-out btn-sm" onclick="dlFunctionsPDF()">📄 PDF</button>
+      <button class="btn btn-out btn-sm" onclick="dlFunctionsExcel()">📊 Excel</button>
+      <button class="btn btn-out btn-sm" onclick="openImport()" title="Import from Excel">📥 Import</button>
+      <button class="btn btn-out" onclick="openQuickAdd()" title="Fast capture while on a call">⚡ Quick Add</button>
+      <button class="btn btn-gold" onclick="openFullModal()">+ Add Inquiry</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- Follow-up alert bar -->
+    <div id="fu-alerts"></div>
+
+    <!-- View nav -->
+    <div class="view-btn-row">
+      <button class="vb active" id="vb-inquiries" onclick="showView('inquiries')">📋 Inquiries</button>
+      <button class="vb" id="vb-analytics"  onclick="showView('analytics')">📊 Analytics</button>
+      <button class="vb" id="vb-budget"     onclick="showView('budget')">💰 Budget Tracker</button>
+      <div style="margin-left:auto; display:flex; gap:6px; align-items:center;">
+        <span style="font-size:11px;color:var(--text-2)">Filter:</span>
+        <select id="f-status" onchange="applyFilters()">
+          <option value="">All Status</option>
+          <option>Pending</option><option>Details Shared</option><option>Confirmed</option>
+          <option>Cancelled</option><option>Postponed</option><option>Not Interested</option><option>Other</option>
+        </select>
+        <select id="f-type" onchange="applyFilters()">
+          <option value="">All Event Types</option>
+          <option>Wedding</option><option>Birthday</option><option>High Tea</option><option>Proposal</option>
+          <option>Engagement</option><option>Corporate Event</option><option>Get Together</option><option>Party</option><option>Other</option>
+        </select>
+        <select id="f-venue" onchange="applyFilters()">
+          <option value="">All Venues</option>
+          <option>Amber Poolside</option><option>Cloud Cafe</option><option>Scarlet</option><option>The Loft</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         VIEW 1: INQUIRIES
+    ════════════════════════════════════════════ -->
+    <div id="view-inquiries">
+      <!-- Month tabs -->
+      <div class="m-tabs" id="inq-month-tabs"></div>
+
+      <!-- KPI row -->
+      <div class="kpi-row k4" id="inq-kpis"></div>
+
+      <!-- Cards grid -->
+      <div class="inq-grid" id="inq-cards"></div>
+
+      <!-- Full table -->
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title">All Inquiries — <span id="inq-tbl-lbl">—</span></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="pill pg" id="inq-tbl-count">0</span>
+            <button class="btn btn-out btn-sm" onclick="toggleCards()">Toggle Cards/Table</button>
+          </div>
+        </div>
+        <div class="overflow-x">
+          <table>
+            <thead><tr>
+              <th>Date</th><th>Guest Name</th><th>Contact</th><th>Event Type</th>
+              <th>Event Date</th><th>Venue</th><th>Pax</th><th>Menu</th>
+              <th>Status</th><th>Follow-up</th><th>Source</th>
+              <th>Food Rev</th><th>Bev Rev</th><th>Remarks</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="inq-tbl-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         VIEW 2: ANALYTICS
+    ════════════════════════════════════════════ -->
+    <div id="view-analytics" style="display:none">
+      <div class="kpi-row k4" id="anal-kpis"></div>
+
+      <!-- Row 1: Monthly trend + Event type -->
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Monthly Inquiries vs Conversions</div>
+          <div class="ch-sub">Inquiries received vs confirmed events each month</div>
+          <canvas id="ch-monthly-trend"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Inquiries by Event Type</div>
+          <div class="ch-sub">Most requested event categories YTD</div>
+          <canvas id="ch-event-types"></canvas>
+        </div>
+      </div>
+
+      <!-- Row 2: Venue + Source -->
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Events by Venue</div>
+          <div class="ch-sub">Confirmed bookings per venue — which location sells most</div>
+          <canvas id="ch-venues"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">How Guests Found Us</div>
+          <div class="ch-sub">Inquiry source breakdown — volume per channel</div>
+          <canvas id="ch-sources"></canvas>
+        </div>
+      </div>
+
+      <!-- Row 3: Conversion by source + Avg pax -->
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Conversion Rate by Source</div>
+          <div class="ch-sub">% of inquiries from each channel that converted to confirmed events</div>
+          <canvas id="ch-src-conv" style="max-height:200px"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Average Pax by Event Type</div>
+          <div class="ch-sub">Average guest count for each event category</div>
+          <canvas id="ch-avg-pax"></canvas>
+        </div>
+      </div>
+
+      <!-- Row 4: Lost reasons + Monthly pax total -->
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Lost / Cancelled Reasons</div>
+          <div class="ch-sub">Why inquiries didn't convert — improve based on this</div>
+          <canvas id="ch-lost-reasons"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Monthly Pax Count</div>
+          <div class="ch-sub">Total pax for confirmed events per month</div>
+          <canvas id="ch-monthly-pax"></canvas>
+        </div>
+      </div>
+
+      <!-- Monthly breakdown this-month combined chart -->
+      <div class="ch-row" style="grid-template-columns:1fr">
+        <div class="ch-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div>
+              <div class="ch-title">Month Deep-Dive — <span id="deepdive-lbl">—</span></div>
+              <div class="ch-sub">Venue · Source · Type breakdown for selected month</div>
+            </div>
+            <div class="m-tabs" id="dd-tabs" style="margin-bottom:0"></div>
+          </div>
+          <div class="ch-row ch-2" style="margin-bottom:0">
+            <canvas id="ch-dd-venue"></canvas>
+            <canvas id="ch-dd-source"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Source performance detail table -->
+      <div class="tc">
+        <div class="tc-head"><div class="tc-title">Source Performance — Full Year</div></div>
+        <table>
+          <thead><tr>
+            <th>Source</th><th>Total Inquiries</th><th>Confirmed</th><th>Conversion Rate</th>
+            <th>Lost/Cancelled</th><th>Pending</th><th>Avg Pax</th><th>Revenue Contributed</th>
+          </tr></thead>
+          <tbody id="src-perf-tbl"></tbody>
+        </table>
+      </div>
+
+      <!-- Monthly performance summary table -->
+      <div class="tc">
+        <div class="tc-head"><div class="tc-title">Monthly Performance Summary</div></div>
+        <div class="overflow-x">
+          <table>
+            <thead><tr>
+              <th>Month</th><th>Inquiries</th><th>Confirmed</th><th>Conv%</th>
+              <th>Cancelled</th><th>Pending</th><th>Top Venue</th><th>Top Source</th>
+              <th>Total Pax</th><th>Food Rev</th><th>Bev Rev</th><th>Total Rev</th>
+            </tr></thead>
+            <tbody id="monthly-summ-tbl"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         VIEW 3: BUDGET TRACKER
+    ════════════════════════════════════════════ -->
+    <div id="view-budget" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">Function Revenue Budgets</div>
+        <button class="btn btn-gold btn-sm" onclick="openBudgetModal()">✏ Set Budget for Month</button>
+      </div>
+
+      <!-- Budget month tabs -->
+      <div class="m-tabs" id="bud-month-tabs"></div>
+
+      <!-- Budget KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px" id="bud-kpis"></div>
+
+      <!-- Budget charts -->
+      <div class="ch-row ch-2">
+        <div class="ch-card">
+          <div class="ch-title">Food Revenue — Budget vs Actual</div>
+          <div class="ch-sub">Monthly food revenue target (line) vs achieved (bar)</div>
+          <canvas id="ch-bud-food"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Beverage Revenue — Budget vs Actual</div>
+          <div class="ch-sub">Monthly beverage revenue target (line) vs achieved (bar)</div>
+          <canvas id="ch-bud-bev"></canvas>
+        </div>
+      </div>
+
+      <!-- Revenue per confirmed event (current month) -->
+      <div class="tc">
+        <div class="tc-head">
+          <div class="tc-title">Revenue by Confirmed Event — <span id="bud-month-lbl">—</span></div>
+          <span class="pill pb" style="font-size:10px">Revenue auto-pulled from inquiries marked Confirmed</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Event Date</th><th>Guest Name</th><th>Event Type</th><th>Venue</th>
+            <th>Pax</th><th>Menu</th><th>Food Revenue</th><th>Bev Revenue</th><th>Total</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="bud-events-tbl"></tbody>
+        </table>
+      </div>
+
+      <!-- Full year budget table -->
+      <div class="tc">
+        <div class="tc-head"><div class="tc-title">Annual Budget Performance — Full Year</div></div>
+        <div class="overflow-x">
+          <table>
+            <thead><tr>
+              <th>Month</th>
+              <th>Food Budget</th><th>Food Actual</th><th>Food Remaining</th><th>Food %</th>
+              <th>Bev Budget</th><th>Bev Actual</th><th>Bev Remaining</th><th>Bev %</th>
+              <th>Combined Budget</th><th>Combined Actual</th><th>Status</th>
+            </tr></thead>
+            <tbody id="annual-bud-tbl"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- ════════ QUICK ADD MODAL ════════ -->
+<div class="overlay" id="m-quick">
+  <div class="modal">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-t">⚡ Quick Add — While On a Call</div>
+        <div style="font-size:10.5px;color:var(--text-2);margin-top:3px">Fill just the essentials now. Edit to complete later.</div>
+      </div>
+      <button class="modal-x" onclick="closeM('m-quick')">×</button>
+    </div>
+    <div class="modal-bd">
+      <!-- Live guest search -->
+      <div class="fr">
+        <label>🔍 Check for Repeat Guest — type name or number</label>
+        <input type="text" id="qa-search" placeholder="Start typing guest name or number..." oninput="liveGuestSearch(this.value,'qa')">
+      </div>
+      <div id="qa-search-results"></div>
+      <div id="qa-repeat-notice" style="display:none" class="alert al-a" style="margin-bottom:10px"></div>
+
+      <div class="fg">
+        <div class="fr"><label>Guest Name <span style="color:var(--red)">*</span></label><input type="text" id="qa-name" placeholder="Full name"></div>
+        <div class="fr"><label>Contact Number <span style="color:var(--red)">*</span></label><input type="text" id="qa-phone" placeholder="07X XXX XXXX"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Event Type <span style="color:var(--red)">*</span></label>
+          <select id="qa-etype">
+            <option value="">Select...</option>
+            <option>Wedding</option><option>Birthday</option><option>High Tea</option><option>Proposal</option>
+            <option>Engagement</option><option>Corporate Event</option><option>Get Together</option><option>Party</option><option>Other</option>
+          </select>
+        </div>
+        <div class="fr"><label>Pax Count</label><input type="number" id="qa-pax" placeholder="No. of guests"></div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Event Date</label><input type="date" id="qa-edate"></div>
+        <div class="fr"><label>Venue</label>
+          <select id="qa-venue">
+            <option value="">Select venue...</option>
+            <option>Amber Poolside</option><option>Cloud Cafe</option><option>Scarlet</option><option>The Loft</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="fr"><label>How did they find us?</label>
+          <select id="qa-source">
+            <option value="">Select source...</option>
+            <option>Social Media</option><option>Website</option><option>Direct Walk-in</option>
+            <option>Recommendation</option><option>Wedding Show / Event</option><option>Email</option><option>Radio</option><option>Other</option>
+          </select>
+        </div>
+        <div class="fr"><label>Status</label>
+          <select id="qa-status">
+            <option>Pending</option><option>Details Shared</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr"><label>Quick Remarks (from call)</label>
+        <textarea id="qa-remarks" placeholder="Key points discussed..." style="min-height:52px"></textarea>
+      </div>
+      <input type="hidden" id="qa-repeat-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-quick')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveQuickAdd()">Save &amp; Complete Later →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ FULL INQUIRY MODAL ════════ -->
+<div class="overlay" id="m-inq">
+  <div class="modal" style="width:680px;max-width:97vw">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-t" id="inq-modal-title">Add Inquiry</div>
+        <div id="inq-repeat-flag" style="display:none;font-size:11px;color:var(--amber);margin-top:3px">⚠ Returning guest — previous inquiries shown below</div>
+      </div>
+      <button class="modal-x" onclick="closeM('m-inq')">×</button>
+    </div>
+    <div class="modal-bd">
+
+      <!-- Returning guest history panel -->
+      <div id="inq-repeat-panel" style="display:none;background:rgba(212,128,64,.06);border:1px solid rgba(212,128,64,.22);border-radius:7px;padding:10px 13px;margin-bottom:12px;font-size:11.5px">
+        <strong style="color:var(--amber)">Previous Inquiries from this guest:</strong>
+        <div id="inq-repeat-list" style="margin-top:6px;color:var(--text-2);line-height:1.9"></div>
+      </div>
+
+      <!-- Guest search for new inquiries -->
+      <div id="inq-search-wrap">
+        <div class="fr">
+          <label>🔍 Check for Repeat Guest First</label>
+          <input type="text" id="inq-search" placeholder="Type name or phone to check..." oninput="liveGuestSearch(this.value,'inq')">
+        </div>
+        <div id="inq-search-results" style="margin-bottom:10px"></div>
+      </div>
+
+      <!-- Section: Guest Info -->
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">👤 Guest Information</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="fr" style="margin-bottom:0">
+            <label>Inquiry Date <span style="color:var(--red)">*</span></label>
+            <input type="date" id="i-inq-date">
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>Guest Name <span style="color:var(--red)">*</span></label>
+            <input type="text" id="i-name" placeholder="Full name" oninput="checkRepeatByName(this.value)">
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>Contact Number <span style="color:var(--red)">*</span></label>
+            <input type="text" id="i-phone" placeholder="07X XXX XXXX" oninput="checkRepeatByPhone(this.value)">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div class="fr" style="margin-bottom:0">
+            <label>Email (optional)</label>
+            <input type="text" id="i-email" placeholder="guest@email.com">
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>How Did They Find Us? <span style="color:var(--red)">*</span></label>
+            <select id="i-source">
+              <option value="">Select source...</option>
+              <option>Social Media</option><option>Website</option><option>Direct Walk-in</option>
+              <option>Recommendation</option><option>Wedding Show / Event</option><option>Email</option><option>Radio</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Event Details -->
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🎪 Event Details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="fr" style="margin-bottom:0">
+            <label>Event Type <span style="color:var(--red)">*</span></label>
+            <select id="i-etype">
+              <option value="">Select type...</option>
+              <option>Wedding</option><option>Birthday</option><option>High Tea</option><option>Proposal</option>
+              <option>Engagement</option><option>Corporate Event</option><option>Get Together</option><option>Party</option><option>Other</option>
+            </select>
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>Event Date</label>
+            <input type="date" id="i-edate">
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>Pax Count</label>
+            <input type="number" id="i-pax" placeholder="Guest count" oninput="checkVenueCap()">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div class="fr" style="margin-bottom:0">
+            <label>Venue</label>
+            <select id="i-venue" onchange="checkVenueCap()">
+              <option value="">Select venue...</option>
+              <option>Amber Poolside</option><option>Cloud Cafe</option><option>Scarlet</option><option>The Loft</option>
+            </select>
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>Menu Type</label>
+            <select id="i-menu">
+              <option value="">Select menu...</option>
+              <option>Wedding Menu 1</option><option>Wedding Menu 2</option><option>Wedding Menu 3</option>
+              <option>High Tea</option><option>Finger Foods</option><option>Custom Menu</option>
+            </select>
+          </div>
+        </div>
+        <div id="cap-warning" style="display:none;margin-top:8px" class="alert al-r">⚠ Pax count exceeds venue capacity. Please verify with guest.</div>
+      </div>
+
+      <!-- Section: Revenue (fill when confirmed) -->
+      <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">💰 Revenue (fill when event is confirmed)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="fr" style="margin-bottom:0">
+            <label>Food Revenue (LKR)</label>
+            <input type="number" id="i-food-rev" placeholder="0.00" oninput="calcTotalRev()">
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>Beverage Revenue (LKR)</label>
+            <input type="number" id="i-bev-rev" placeholder="0.00" oninput="calcTotalRev()">
+          </div>
+          <div class="fr" style="margin-bottom:0">
+            <label>Total Revenue <span style="color:var(--green);font-size:9px">AUTO</span></label>
+            <input type="text" id="i-total-rev" readonly style="opacity:.7;color:var(--gold);font-weight:600;cursor:not-allowed">
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Status & Follow-up -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="fr">
+          <label>Status <span style="color:var(--red)">*</span></label>
+          <select id="i-status" onchange="onStatusChange()">
+            <option>Pending</option><option>Details Shared</option><option>Confirmed</option>
+            <option>Cancelled</option><option>Postponed</option><option>Not Interested</option><option>Other</option>
+          </select>
+        </div>
+        <div class="fr">
+          <label>Follow-up Date</label>
+          <input type="date" id="i-followup">
+        </div>
+        <div class="fr" id="lost-reason-wrap" style="display:none">
+          <label>Lost Reason</label>
+          <select id="i-lost-reason">
+            <option value="">Select reason...</option>
+            <option>Too Expensive</option><option>Date Not Available</option><option>Chose Competitor</option>
+            <option>No Response</option><option>Changed Plans</option><option>Budget Cut</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr">
+        <label>Remarks / Notes</label>
+        <textarea id="i-remarks" placeholder="Requirements, preferences, what was discussed, follow-up notes..."></textarea>
+      </div>
+      <input type="hidden" id="i-id">
+      <input type="hidden" id="i-repeat-of">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-inq')">Cancel</button>
+      <button class="btn btn-gold" id="inq-save-btn" onclick="saveInquiry()">Save Inquiry</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SET FUNCTION BUDGET MODAL ════════ -->
+<div class="overlay" id="m-fbud">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-t">Set Function Budget — <span id="fbud-month-lbl">—</span></div>
+      <button class="modal-x" onclick="closeM('m-fbud')">×</button>
+    </div>
+    <div class="modal-bd">
+      <p style="font-size:11.5px;color:var(--text-2);margin-bottom:16px">Set the monthly revenue targets for Function Food and Function Beverage. Actual figures are automatically pulled from confirmed inquiries.</p>
+      <div class="fg">
+        <div class="fr"><label>Function Food Budget (LKR)</label><input type="number" id="fb-food" placeholder="0"></div>
+        <div class="fr"><label>Function Beverage Budget (LKR)</label><input type="number" id="fb-bev" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-fbud')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveFuncBudget()">Save Budget Targets</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ QUICK STATUS MODAL ════════ -->
+<div class="overlay" id="m-qstatus">
+  <div class="modal" style="width:420px">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-t">Update Status</div>
+        <div id="qstatus-name" style="font-size:11.5px;color:var(--text-2);margin-top:3px"></div>
+      </div>
+      <button class="modal-x" onclick="closeM('m-qstatus')">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="fr"><label>New Status</label>
+        <select id="qs-status">
+          <option>Pending</option><option>Details Shared</option><option>Confirmed</option>
+          <option>Cancelled</option><option>Postponed</option><option>Not Interested</option><option>Other</option>
+        </select>
+      </div>
+      <div class="fr" id="qs-lost-wrap" style="display:none"><label>Lost Reason</label>
+        <select id="qs-lost-reason">
+          <option value="">Select reason...</option>
+          <option>Too Expensive</option><option>Date Not Available</option><option>Chose Competitor</option>
+          <option>No Response</option><option>Changed Plans</option><option>Budget Cut</option><option>Other</option>
+        </select>
+      </div>
+      <div class="fr"><label>Follow-up Date</label><input type="date" id="qs-followup"></div>
+      <div class="fr"><label>Add Remarks</label><textarea id="qs-remarks" placeholder="Quick note about this update..." style="min-height:52px"></textarea></div>
+      <input type="hidden" id="qs-id">
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeM('m-qstatus')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveQuickStatus()">Update</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DATA & CONFIG
+// ══════════════════════════════════════════════════════
+document.getElementById('sidebar').innerHTML = getSidebarHTML('functions');
+requireAuth();
+
+// Load dropdowns from Settings (localStorage) — editable in Settings page
+function getDD(k,defs){try{const s=localStorage.getItem('cc_dd_'+k);return s?JSON.parse(s):defs;}catch(e){return defs;}}
+function getVenues()  { return getDD('func_venues',  ['Amber Poolside','Cloud Cafe','Scarlet','The Loft']); }
+function getSources() { return getDD('func_sources', ['Social Media','Website','Direct Walk-in','Recommendation','Wedding Show / Event','Email','Radio','Other']); }
+function getETypes()  { return getDD('func_event_types', ['Wedding','Birthday','High Tea','Proposal','Engagement','Corporate Event','Get Together','Party','Other']); }
+function getStatuses(){ return getDD('func_statuses', ['Pending','Details Shared','Confirmed','Cancelled','Postponed','Not Interested','Other']); }
+function getMenus()   { return getDD('func_menus',   ['Wedding Menu 1','Wedding Menu 2','Wedding Menu 3','High Tea','High Tea for 1','High Tea for 2','High Tea for 4','Finger Foods','Custom Menu']); }
+
+// Keep these as dynamic getters
+const VENUES    = ['Amber Poolside','Cloud Cafe','Scarlet','The Loft']; // used for cap lookup — keep static
+const VENUE_CAP = {'Amber Poolside':250,'Cloud Cafe':80,'Scarlet':180,'The Loft':70};
+// Dynamic aliases used in charts/filters
+function ETYPES_LIST()   { return getETypes(); }
+function SOURCES_LIST()  { return getSources(); }
+function STATUSES_LIST() { return getStatuses(); }
+const STATUS_PILL = {
+  'Pending':'pb', 'Details Shared':'bgo', 'Confirmed':'pgr',
+  'Cancelled':'pr', 'Postponed':'pa', 'Not Interested':'pr', 'Other':'pb'
+};
+const CARD_CLASS = {
+  'Pending':'card-pending','Details Shared':'card-shared','Confirmed':'card-confirmed',
+  'Cancelled':'card-cancelled','Not Interested':'card-lost'
+};
+const PAL = ['#b8956a','#4db87a','#e05555','#d48040','#5a90d8','#9b7ac8','#4db8a0','#e0a855','#d87a8a'];
+
+let D = { inquiries:[], funcBudgets:[] };
+let CM = fyIdxNow();       // current month for inquiries
+let BM = fyIdxNow();       // budget month
+let DM = fyIdxNow();       // deep-dive month in analytics
+let showCards = true;
+const CI = {};
+function kc(id){ if(CI[id]){CI[id].destroy();delete CI[id];} }
+
+// ── LOAD ─────────────────────────────────────────────
+// ── Populate all form dropdowns from Settings ──────
+function populateFormDropdowns() {
+  const venues   = getVenues();
+  const sources  = getSources();
+  const etypes   = getETypes();
+  const statuses = getStatuses();
+  const menus    = getMenus();
+
+  // All selects that need these options
+  const fill = (ids, opts) => ids.forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    const cur = el.value;
+    el.innerHTML = opts.map(o=>`<option>${o}</option>`).join('');
+    if(opts.includes(cur)) el.value = cur;
+  });
+
+  fill(['i-venue','qa-venue'], venues);
+  fill(['i-source','qa-source'], sources);
+  fill(['i-event-type','qa-event-type'], etypes);
+  fill(['f-status','i-status','qa-status'], statuses);
+  fill(['i-menu'], menus);
+
+  // Filter dropdowns
+  const fStatus = document.getElementById('f-status');
+  if(fStatus){
+    const cur = fStatus.value;
+    fStatus.innerHTML = '<option value="">All Status</option>' + statuses.map(s=>`<option>${s}</option>`).join('');
+    if(statuses.includes(cur)) fStatus.value = cur;
+  }
+  const fType = document.getElementById('f-type');
+  if(fType){
+    const cur = fType.value;
+    fType.innerHTML = '<option value="">All Types</option>' + etypes.map(t=>`<option>${t}</option>`).join('');
+    if(etypes.includes(cur)) fType.value = cur;
+  }
+  const fVenue = document.getElementById('f-venue');
+  if(fVenue){
+    const cur = fVenue.value;
+    fVenue.innerHTML = '<option value="">All Venues</option>' + venues.map(v=>`<option>${v}</option>`).join('');
+    if(venues.includes(cur)) fVenue.value = cur;
+  }
+}
+
+async function load() {
+  showLoader('Loading Functions & Events...');
+  try {
+    const r = await DB.getAll();
+    D = r;
+    D.inquiries   = await fetchSheet('FuncInquiries');
+    D.funcBudgets = await fetchSheet('FuncBudgets');
+    renderSidebar(r.user, r.sidebarFields);
+    populateFormDropdowns();
+    buildMonthTabs('inq-month-tabs', CM, i => { CM=i; buildMonthTabs('inq-month-tabs',CM,v=>{CM=v;renderInqMonthTabs();renderInquiries();}); renderInquiries(); });
+    buildMonthTabs('bud-month-tabs', BM, i => { BM=i; buildMonthTabs('bud-month-tabs',BM,v=>{BM=v;renderBudget();}); renderBudget(); });
+    buildMonthTabs('dd-tabs', DM, i => { DM=i; buildMonthTabs('dd-tabs',DM,v=>{DM=v;renderDeepDive();}); renderDeepDive(); });
+    renderFollowupAlerts();
+    renderInquiries();
+  } catch(e) { toast('Load failed: '+e.message,'e'); }
+  hideLoader();
+}
+
+async function fetchSheet(name) {
+  try { const r = await api('GET',{action:'getSheet',token:DB.getToken(),sheet:name}); return r.data||[]; }
+  catch(e) { return []; }
+}
+async function reloadData() {
+  D.inquiries   = await fetchSheet('FuncInquiries');
+  D.funcBudgets = await fetchSheet('FuncBudgets');
+}
+
+// ── MONTH TAB BUILDER ─────────────────────────────────
+function buildMonthTabs(containerId, activeCM, onClick) {
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = FY_MONTHS.map((m,i) => {
+    const has = (D.inquiries||[]).some(x=>x.fy_month==i);
+    return `<div class="m-tab ${i===activeCM?'active':''} ${has&&i!==activeCM?'hd':''}"
+      onclick="(${onClick.toString()})(${i})">${FY_SHORT[i]}</div>`;
+  }).join('');
+}
+function renderInqMonthTabs() {
+  buildMonthTabs('inq-month-tabs', CM, i => { CM=i; renderInqMonthTabs(); renderInquiries(); });
+}
+function renderBudMonthTabs() {
+  buildMonthTabs('bud-month-tabs', BM, i => { BM=i; renderBudMonthTabs(); renderBudget(); });
+}
+function renderDDTabs() {
+  buildMonthTabs('dd-tabs', DM, i => { DM=i; renderDDTabs(); renderDeepDive(); });
+}
+
+// ── VIEW SWITCHING ────────────────────────────────────
+function showView(v) {
+  ['inquiries','analytics','budget'].forEach(id => {
+    document.getElementById('view-'+id).style.display = id===v?'block':'none';
+    document.getElementById('vb-'+id).className = 'vb'+(id===v?' active':'');
+  });
+  if(v==='analytics') { renderAnalytics(); renderDeepDive(); }
+  if(v==='budget')    { renderBudMonthTabs(); renderBudget(); }
+}
+function toggleCards() {
+  showCards = !showCards;
+  document.getElementById('inq-cards').style.display = showCards?'grid':'none';
+}
+
+// ── FILTERS ───────────────────────────────────────────
+function getFiltered(all) {
+  const sf = document.getElementById('f-status')?.value||'';
+  const tf = document.getElementById('f-type')?.value||'';
+  const vf = document.getElementById('f-venue')?.value||'';
+  let r = all;
+  if(sf) r = r.filter(x=>x.status===sf);
+  if(tf) r = r.filter(x=>x.event_type===tf);
+  if(vf) r = r.filter(x=>x.venue===vf);
+  return r;
+}
+function applyFilters() { renderInquiries(); }
+
+// ── FOLLOW-UP ALERTS ──────────────────────────────────
+function renderFollowupAlerts() {
+  const today = todayStr();
+  const inqs  = D.inquiries||[];
+  const active = ['Pending','Details Shared','Postponed'];
+  const overdue = inqs.filter(x=>x.followup_date&&fmtDate(x.followup_date)<today&&active.includes(x.status));
+  const dueToday= inqs.filter(x=>fmtDate(x.followup_date)===today&&active.includes(x.status));
+  let html='';
+  if(dueToday.length)  html += `<div class="alert al-a">📅 <strong>${dueToday.length} follow-up${dueToday.length>1?'s':''} due today:</strong> ${dueToday.map(x=>x.guest_name).join(', ')}</div>`;
+  if(overdue.length)   html += `<div class="alert al-r">⚠ <strong>${overdue.length} overdue follow-up${overdue.length>1?'s':''}</strong> (not actioned): ${overdue.map(x=>x.guest_name+' ('+fmtDate(x.followup_date)+')').join(', ')}</div>`;
+  document.getElementById('fu-alerts').innerHTML = html;
+}
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+// ── RENDER INQUIRIES ──────────────────────────────────
+function renderInquiries() {
+  const all = getFiltered((D.inquiries||[]).filter(x=>x.fy_month==CM));
+  const allYear= getFiltered(D.inquiries||[]);
+  const today  = todayStr();
+  const lbl    = fyLabel(CM);
+
+  // KPIs
+  const conf    = all.filter(x=>x.status==='Confirmed');
+  const lost    = all.filter(x=>['Cancelled','Not Interested'].includes(x.status));
+  const pending = all.filter(x=>['Pending','Details Shared'].includes(x.status));
+  const convPct = all.length>0?(conf.length/all.length*100).toFixed(1):0;
+  document.getElementById('inq-kpis').innerHTML = `
+    <div class="kpi k-b"><div class="kpi-lbl">Inquiries — ${lbl}</div><div class="kpi-val">${all.length}</div><div class="kpi-sub">${allYear.length} total YTD</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Confirmed</div><div class="kpi-val">${conf.length}</div><span class="kpi-badge bgg">${convPct}% conversion</span></div>
+    <div class="kpi k-r"><div class="kpi-lbl">Lost / Cancelled</div><div class="kpi-val">${lost.length}</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Pending Follow-up</div><div class="kpi-val">${pending.length}</div></div>`;
+
+  document.getElementById('inq-tbl-lbl').textContent   = lbl;
+  document.getElementById('inq-tbl-count').textContent = all.length+' inquiries';
+
+  // Sort: overdue first, then by inquiry date desc
+  const sorted = all.slice().sort((a,b)=>{
+    const aO = a.followup_date&&fmtDate(a.followup_date)<today&&['Pending','Details Shared','Postponed'].includes(a.status)?0:1;
+    const bO = b.followup_date&&fmtDate(b.followup_date)<today&&['Pending','Details Shared','Postponed'].includes(b.status)?0:1;
+    if(aO!==bO) return aO-bO;
+    return new Date(b.inquiry_date||0)-new Date(a.inquiry_date||0);
+  });
+
+  // ── CARDS ───
+  let cards='';
+  sorted.forEach(inq=>{
+    const isRepeat = isRepeatGuest(inq);
+    const fDate    = fmtDate(inq.followup_date);
+    const active   = ['Pending','Details Shared','Postponed'].includes(inq.status);
+    const isOverdue     = fDate&&fDate<today&&active;
+    const isTodayFu     = fDate===today&&active;
+    const fuChip = isOverdue?`<span class="fu-chip fu-overdue">⚠ Overdue: ${fDate}</span>`:
+                   isTodayFu?`<span class="fu-chip fu-today">📅 Follow-up Today</span>`:
+                   fDate?`<span class="fu-chip fu-upcoming">Follow-up: ${fDate}</span>`:'';
+    const cardClass = isOverdue?'inq-card card-overdue':
+                      isTodayFu?'inq-card card-followup-today':
+                      `inq-card ${CARD_CLASS[inq.status]||''}`;
+    const pax   = Number(inq.pax||0);
+    const vcap  = inq.venue?VENUE_CAP[inq.venue]:0;
+    const capWarn = vcap&&pax>vcap?`<span class="cap-warning">⚠ Over capacity (${vcap})</span>`:'';
+    const totRev= Number(inq.food_revenue||0)+Number(inq.bev_revenue||0);
+    cards += `<div class="${cardClass}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="inq-name">${inq.guest_name||'—'}${isRepeat?'<span class="repeat-badge">REPEAT</span>':''}</div>
+          <div class="inq-contact">${inq.phone||'—'}${inq.email?' · '+inq.email:''}</div>
+        </div>
+        <span class="pill ${STATUS_PILL[inq.status]||'pb'}" style="font-size:9.5px;flex-shrink:0">${inq.status}</span>
+      </div>
+      ${fuChip}
+      <div style="margin-top:9px">
+        <div class="inq-detail-row"><span class="dl">Event Type</span><span class="dv">${inq.event_type||'—'}</span></div>
+        <div class="inq-detail-row"><span class="dl">Event Date</span><span class="dv">${fmtDate(inq.event_date)||'TBD'}</span></div>
+        <div class="inq-detail-row"><span class="dl">Venue</span><span class="dv">${inq.venue||'—'} ${capWarn}</span></div>
+        <div class="inq-detail-row"><span class="dl">Pax</span><span class="dv">${pax||'—'}</span></div>
+        <div class="inq-detail-row"><span class="dl">Menu</span><span class="dv">${inq.menu_type||'—'}</span></div>
+        <div class="inq-detail-row"><span class="dl">Source</span><span class="dv">${inq.source||'—'}</span></div>
+        ${totRev>0?`<div class="inq-detail-row"><span class="dl">Revenue</span><span class="dv" style="color:var(--green);font-weight:600">${fmt(totRev)}</span></div>`:''}
+        ${inq.inquiry_date?`<div class="inq-detail-row"><span class="dl">Inquired</span><span class="dv">${fmtDate(inq.inquiry_date)}</span></div>`:''}
+      </div>
+      ${inq.remarks?`<div class="inq-remarks">${inq.remarks}</div>`:''}
+      <div class="inq-actions">
+        <button class="btn btn-edit btn-sm" onclick="editInquiry('${inq.id}')">Edit</button>
+        <button class="btn btn-out btn-sm" onclick="openQuickStatus('${inq.id}')">Status ↓</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteInquiry('${inq.id}')">✕</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('inq-cards').innerHTML = cards||`<div style="grid-column:1/-1"><div class="empty"><div class="ei">📋</div>No inquiries yet for ${lbl}. Click "+ Add Inquiry" or "⚡ Quick Add".</div></div>`;
+
+  // ── TABLE ───
+  let rows='';
+  sorted.forEach(inq=>{
+    const isRepeat = isRepeatGuest(inq);
+    const fDate    = fmtDate(inq.followup_date);
+    const today2   = todayStr();
+    const fuStyle  = fDate&&fDate<today2&&['Pending','Details Shared','Postponed'].includes(inq.status)?'color:var(--red);font-weight:600':
+                     fDate===today2?'color:var(--amber);font-weight:600':'';
+    rows += `<tr>
+      <td>${fmtDate(inq.inquiry_date)||'—'}</td>
+      <td style="font-weight:600;white-space:nowrap">${inq.guest_name||'—'}${isRepeat?' <span class="repeat-badge" style="font-size:8px">RPT</span>':''}</td>
+      <td>${inq.phone||'—'}</td>
+      <td><span class="pill pg">${inq.event_type||'—'}</span></td>
+      <td>${fmtDate(inq.event_date)||'—'}</td>
+      <td style="font-size:11px">${inq.venue||'—'}</td>
+      <td class="mono">${inq.pax||'—'}</td>
+      <td style="font-size:11px">${inq.menu_type||'—'}</td>
+      <td><span class="pill ${STATUS_PILL[inq.status]||'pb'}">${inq.status}</span></td>
+      <td style="${fuStyle};font-size:11px">${fDate||'—'}</td>
+      <td style="font-size:11px">${inq.source||'—'}</td>
+      <td class="mono">${inq.food_revenue?fmt(inq.food_revenue):'—'}</td>
+      <td class="mono">${inq.bev_revenue?fmt(inq.bev_revenue):'—'}</td>
+      <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inq.remarks||'—'}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-edit btn-sm" onclick="editInquiry('${inq.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteInquiry('${inq.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('inq-tbl-body').innerHTML = rows||`<tr><td colspan="15"><div class="empty">No inquiries for this month.</div></td></tr>`;
+}
+
+// ── ANALYTICS ────────────────────────────────────────
+function renderAnalytics() {
+  const all = D.inquiries||[];
+  const conf = all.filter(x=>x.status==='Confirmed');
+  const totRev = conf.reduce((a,x)=>a+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+  const avgPax = all.filter(x=>x.pax>0).length>0
+    ? (all.filter(x=>x.pax>0).reduce((a,x)=>a+Number(x.pax),0)/all.filter(x=>x.pax>0).length).toFixed(0):0;
+  const convPct= all.length>0?(conf.length/all.length*100).toFixed(1):0;
+
+  document.getElementById('anal-kpis').innerHTML = `
+    <div class="kpi k-b"><div class="kpi-lbl">Total Inquiries YTD</div><div class="kpi-val">${all.length}</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">Confirmed Events</div><div class="kpi-val">${conf.length}</div><span class="kpi-badge bgg">${convPct}% conversion</span></div>
+    <div class="kpi k-a"><div class="kpi-lbl">Average Pax</div><div class="kpi-val">${avgPax}</div><div class="kpi-sub">per inquiry</div></div>
+    <div class="kpi k-g"><div class="kpi-lbl">Revenue from Events</div><div class="kpi-val">${fmt(totRev)}</div></div>`;
+
+  kc('ch-monthly-trend'); kc('ch-event-types'); kc('ch-venues');
+  kc('ch-sources'); kc('ch-src-conv'); kc('ch-avg-pax');
+  kc('ch-lost-reasons'); kc('ch-monthly-pax');
+
+  // Monthly inquiries vs confirmed
+  CI['ch-monthly-trend'] = new Chart(document.getElementById('ch-monthly-trend'),{type:'bar',data:{labels:FY_SHORT,datasets:[
+    {label:'Inquiries',data:FY_MONTHS.map((_,i)=>all.filter(x=>x.fy_month==i).length),backgroundColor:'rgba(90,144,216,.38)',borderColor:'#5a90d8',borderWidth:1.5,borderRadius:3},
+    {label:'Confirmed',data:FY_MONTHS.map((_,i)=>all.filter(x=>x.fy_month==i&&x.status==='Confirmed').length),backgroundColor:'rgba(77,184,122,.5)',borderColor:'#4db87a',borderWidth:1.5,borderRadius:3}
+  ]},options:cOpts('',true)});
+
+  // Event types
+  const typeData = ETYPES.map(t=>all.filter(x=>x.event_type===t).length);
+  const typeLabels = ETYPES.filter((_,i)=>typeData[i]>0);
+  CI['ch-event-types'] = new Chart(document.getElementById('ch-event-types'),{type:'doughnut',data:{labels:typeLabels.length?typeLabels:['No data'],datasets:[{data:typeLabels.length?ETYPES.filter((_,i)=>typeData[i]>0).map(t=>all.filter(x=>x.event_type===t).length):[1],backgroundColor:PAL,borderWidth:2,borderColor:'#181826'}]},options:dOpts()});
+
+  // Venues (confirmed)
+  CI['ch-venues'] = new Chart(document.getElementById('ch-venues'),{type:'bar',data:{labels:VENUES,datasets:[{label:'Confirmed Events',data:VENUES.map(v=>conf.filter(x=>x.venue===v).length),backgroundColor:PAL,borderRadius:4,borderWidth:1.5}]},options:cOpts()});
+
+  // Sources
+  const srcData = SOURCES.map(s=>all.filter(x=>x.source===s).length);
+  const srcLbls = SOURCES.filter((_,i)=>srcData[i]>0);
+  CI['ch-sources'] = new Chart(document.getElementById('ch-sources'),{type:'doughnut',data:{labels:srcLbls.length?srcLbls:['No data'],datasets:[{data:srcLbls.length?SOURCES.filter((_,i)=>srcData[i]>0).map(s=>all.filter(x=>x.source===s).length):[1],backgroundColor:PAL,borderWidth:2,borderColor:'#181826'}]},options:dOpts()});
+
+  // Conversion rate by source (horizontal bar)
+  const srcConvPct = SOURCES.map(s=>{const t=all.filter(x=>x.source===s).length;const c=conf.filter(x=>x.source===s).length;return t>0?(c/t*100).toFixed(0):0;});
+  CI['ch-src-conv'] = new Chart(document.getElementById('ch-src-conv'),{type:'bar',data:{labels:SOURCES,datasets:[{label:'Conversion %',data:srcConvPct,backgroundColor:'rgba(184,149,106,.5)',borderColor:'#b8956a',borderWidth:1.5,borderRadius:3}]},options:{...cOpts(),indexAxis:'y',scales:{x:{max:100,ticks:{callback:v=>v+'%',color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}}});
+
+  // Avg pax by type
+  CI['ch-avg-pax'] = new Chart(document.getElementById('ch-avg-pax'),{type:'bar',data:{labels:ETYPES,datasets:[{label:'Avg Pax',data:ETYPES.map(t=>{const ev=all.filter(x=>x.event_type===t&&x.pax>0);return ev.length>0?(ev.reduce((a,x)=>a+Number(x.pax),0)/ev.length).toFixed(0):0;}),backgroundColor:'rgba(90,144,216,.45)',borderColor:'#5a90d8',borderWidth:1.5,borderRadius:3}]},options:cOpts()});
+
+  // Lost reasons
+  const lostMap={};all.filter(x=>['Cancelled','Not Interested'].includes(x.status)).forEach(x=>{const r=x.lost_reason||'Not Specified';lostMap[r]=(lostMap[r]||0)+1;});
+  const lk=Object.keys(lostMap),lv=Object.values(lostMap);
+  CI['ch-lost-reasons']=new Chart(document.getElementById('ch-lost-reasons'),{type:'doughnut',data:{labels:lk.length?lk:['No data'],datasets:[{data:lk.length?lv:[1],backgroundColor:lk.length?PAL:['rgba(255,255,255,.05)'],borderWidth:2,borderColor:'#181826'}]},options:dOpts()});
+
+  // Monthly pax (confirmed events)
+  CI['ch-monthly-pax']=new Chart(document.getElementById('ch-monthly-pax'),{type:'bar',data:{labels:FY_SHORT,datasets:[{label:'Total Pax',data:FY_MONTHS.map((_,i)=>conf.filter(x=>x.fy_month==i).reduce((a,x)=>a+Number(x.pax||0),0)),backgroundColor:'rgba(184,149,106,.4)',borderColor:'#b8956a',borderWidth:1.5,borderRadius:3}]},options:cOpts()});
+
+  // Tables
+  renderSourcePerfTable(all,conf);
+  renderMonthlyPerfTable(all);
+}
+
+function renderDeepDive(){
+  kc('ch-dd-venue'); kc('ch-dd-source');
+  const m = (D.inquiries||[]).filter(x=>x.fy_month==DM);
+  document.getElementById('deepdive-lbl').textContent = fyLabel(DM);
+  CI['ch-dd-venue']=new Chart(document.getElementById('ch-dd-venue'),{type:'bar',data:{labels:VENUES,datasets:[{label:'Inquiries',data:VENUES.map(v=>m.filter(x=>x.venue===v).length),backgroundColor:PAL,borderRadius:3}]},options:{...cOpts('Venue Breakdown'),plugins:{legend:{display:false},title:{display:true,text:'Inquiries by Venue',color:'#e4dfd8',font:{size:11,family:'Poppins'}}}}});
+  CI['ch-dd-source']=new Chart(document.getElementById('ch-dd-source'),{type:'bar',data:{labels:SOURCES.map(s=>s.length>14?s.slice(0,13)+'…':s),datasets:[{label:'Inquiries',data:SOURCES.map(s=>m.filter(x=>x.source===s).length),backgroundColor:PAL,borderRadius:3}]},options:{...cOpts('Source Breakdown'),plugins:{legend:{display:false},title:{display:true,text:'Inquiries by Source',color:'#e4dfd8',font:{size:11,family:'Poppins'}}}}});
+  renderDDTabs();
+}
+
+function renderSourcePerfTable(all,conf){
+  let rows='';
+  SOURCES.forEach(s=>{
+    const tot=all.filter(x=>x.source===s).length; if(!tot) return;
+    const c=conf.filter(x=>x.source===s).length;
+    const lost=all.filter(x=>x.source===s&&['Cancelled','Not Interested'].includes(x.status)).length;
+    const pend=all.filter(x=>x.source===s&&['Pending','Details Shared'].includes(x.status)).length;
+    const paxArr=all.filter(x=>x.source===s&&x.pax>0);
+    const avgP=paxArr.length>0?(paxArr.reduce((a,x)=>a+Number(x.pax),0)/paxArr.length).toFixed(0):'—';
+    const rev=conf.filter(x=>x.source===s).reduce((a,x)=>a+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0);
+    const cr=tot>0?(c/tot*100).toFixed(0):0;
+    rows+=`<tr><td><strong>${s}</strong></td><td class="mono">${tot}</td><td class="mono">${c}</td><td><span class="pill ${Number(cr)>=50?'pgr':Number(cr)>=25?'pa':'pr'}">${cr}%</span></td><td class="mono">${lost}</td><td class="mono">${pend}</td><td class="mono">${avgP}</td><td class="mono">${rev>0?fmt(rev):'—'}</td></tr>`;
+  });
+  document.getElementById('src-perf-tbl').innerHTML=rows||`<tr><td colspan="8"><div class="empty">No data yet.</div></td></tr>`;
+}
+function renderMonthlyPerfTable(all){
+  let rows='';
+  FY_MONTHS.forEach((_,i)=>{
+    const m=all.filter(x=>x.fy_month==i);
+    if(!m.length){rows+=`<tr><td>${fyLabel(i)}</td><td colspan="11" style="color:var(--text-3)">No inquiries</td></tr>`;return;}
+    const c=m.filter(x=>x.status==='Confirmed');
+    const cr=(m.length>0?(c.length/m.length*100).toFixed(0):0);
+    const lost=m.filter(x=>['Cancelled','Not Interested'].includes(x.status)).length;
+    const pend=m.filter(x=>['Pending','Details Shared'].includes(x.status)).length;
+    const topV=VENUES.reduce((a,v)=>m.filter(x=>x.venue===v).length>m.filter(x=>x.venue===a).length?v:a,VENUES[0]);
+    const topS=SOURCES.reduce((a,s)=>m.filter(x=>x.source===s).length>m.filter(x=>x.source===a).length?s:a,SOURCES[0]);
+    const paxArr=c.filter(x=>x.pax>0);const totPax=paxArr.reduce((a,x)=>a+Number(x.pax),0);
+    const fRev=c.reduce((a,x)=>a+Number(x.food_revenue||0),0);
+    const bRev=c.reduce((a,x)=>a+Number(x.bev_revenue||0),0);
+    rows+=`<tr><td><strong>${fyLabel(i)}</strong></td><td class="mono">${m.length}</td><td class="mono">${c.length}</td><td><span class="pill ${Number(cr)>=50?'pgr':Number(cr)>=25?'pa':'pr'}">${cr}%</span></td><td class="mono">${lost}</td><td class="mono">${pend}</td><td style="font-size:11px">${topV}</td><td style="font-size:11px;max-width:100px">${topS}</td><td class="mono">${totPax||'—'}</td><td class="mono">${fRev>0?fmt(fRev):'—'}</td><td class="mono">${bRev>0?fmt(bRev):'—'}</td><td class="mono" style="font-weight:700;color:var(--gold)">${(fRev+bRev)>0?fmt(fRev+bRev):'—'}</td></tr>`;
+  });
+  document.getElementById('monthly-summ-tbl').innerHTML=rows;
+}
+
+// ── BUDGET ───────────────────────────────────────────
+function getBudget(m,type){ const b=(D.funcBudgets||[]).find(x=>Number(x.fy_month)===m&&x.budget_type===type); return Number(b?.amount||0); }
+function getActual(m,type){ return (D.inquiries||[]).filter(x=>Number(x.fy_month)===m&&x.status==='Confirmed').reduce((a,x)=>a+Number(type==='food'?x.food_revenue||0:x.bev_revenue||0),0); }
+
+function renderBudget(){
+  const lbl = fyLabel(BM);
+  document.getElementById('bud-month-lbl').textContent = lbl;
+  const fB=getBudget(BM,'food'), bB=getBudget(BM,'bev');
+  const fA=getActual(BM,'food'), bA=getActual(BM,'bev');
+  const fP=fB>0?fA/fB*100:0, bP=bB>0?bA/bB*100:0;
+  const col=(p)=>p>=100?'k-gr':p>=70?'k-a':'k-r';
+
+  document.getElementById('bud-kpis').innerHTML = `
+    <div class="kpi ${col(fP)}"><div class="kpi-lbl">Food Budget — ${lbl}</div><div class="kpi-val">${fmt(fB)}</div>${progBar(fP)}</div>
+    <div class="kpi k-b"><div class="kpi-lbl">Food Actual</div><div class="kpi-val">${fmt(fA)}</div><div class="kpi-sub" style="color:${fA>=fB?'var(--green)':'var(--amber)'}">${fB>0?(fA>=fB?'+ '+fmt(fA-fB)+' over target':fmt(fB-fA)+' remaining'):'No budget set'}</div></div>
+    <div class="kpi ${col(bP)}"><div class="kpi-lbl">Bev Budget — ${lbl}</div><div class="kpi-val">${fmt(bB)}</div>${progBar(bP)}</div>
+    <div class="kpi k-b"><div class="kpi-lbl">Bev Actual</div><div class="kpi-val">${fmt(bA)}</div><div class="kpi-sub" style="color:${bA>=bB?'var(--green)':'var(--amber)'}">${bB>0?(bA>=bB?'+ '+fmt(bA-bB)+' over target':fmt(bB-bA)+' remaining'):'No budget set'}</div></div>`;
+
+  kc('ch-bud-food'); kc('ch-bud-bev');
+  const allFoodB=FY_MONTHS.map((_,i)=>getBudget(i,'food'));
+  const allFoodA=FY_MONTHS.map((_,i)=>getActual(i,'food'));
+  const allBevB=FY_MONTHS.map((_,i)=>getBudget(i,'bev'));
+  const allBevA=FY_MONTHS.map((_,i)=>getActual(i,'bev'));
+
+  const budChartOpts=(label)=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#9a9590'}}},scales:{y:{ticks:{callback:v=>'LKR '+fmtK(v),color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}});
+
+  CI['ch-bud-food']=new Chart(document.getElementById('ch-bud-food'),{data:{labels:FY_SHORT,datasets:[
+    {type:'line',label:'Food Budget',data:allFoodB,borderColor:'#b8956a',borderWidth:2,pointRadius:3,fill:false,tension:.3},
+    {type:'bar',label:'Food Actual',data:allFoodA,backgroundColor:allFoodA.map((a,i)=>a>=allFoodB[i]?'rgba(77,184,122,.5)':'rgba(184,149,106,.4)'),borderRadius:3}
+  ]},options:budChartOpts('Food')});
+
+  CI['ch-bud-bev']=new Chart(document.getElementById('ch-bud-bev'),{data:{labels:FY_SHORT,datasets:[
+    {type:'line',label:'Bev Budget',data:allBevB,borderColor:'#5a90d8',borderWidth:2,pointRadius:3,fill:false,tension:.3},
+    {type:'bar',label:'Bev Actual',data:allBevA,backgroundColor:allBevA.map((a,i)=>a>=allBevB[i]?'rgba(77,184,122,.5)':'rgba(90,144,216,.4)'),borderRadius:3}
+  ]},options:budChartOpts('Bev')});
+
+  // Revenue per event table
+  const mConf=(D.inquiries||[]).filter(x=>Number(x.fy_month)===BM&&x.status==='Confirmed');
+  let eRows='';
+  mConf.sort((a,b)=>new Date(a.event_date||0)-new Date(b.event_date||0)).forEach(x=>{
+    const tot=Number(x.food_revenue||0)+Number(x.bev_revenue||0);
+    eRows+=`<tr><td>${fmtDate(x.event_date)||'—'}</td><td style="font-weight:600">${x.guest_name||'—'}</td><td><span class="pill pg">${x.event_type||'—'}</span></td><td style="font-size:11px">${x.venue||'—'}</td><td class="mono">${x.pax||'—'}</td><td style="font-size:11px">${x.menu_type||'—'}</td><td class="mono" style="color:var(--green);font-weight:600">${fmt(x.food_revenue)}</td><td class="mono" style="color:var(--blue);font-weight:600">${fmt(x.bev_revenue)}</td><td class="mono" style="font-weight:700;color:var(--gold)">${fmt(tot)}</td><td><button class="btn btn-edit btn-sm" onclick="editInquiry('${x.id}')">Edit</button></td></tr>`;
+  });
+  if(mConf.length){
+    const tF=mConf.reduce((a,x)=>a+Number(x.food_revenue||0),0);
+    const tB=mConf.reduce((a,x)=>a+Number(x.bev_revenue||0),0);
+    eRows+=`<tr style="background:rgba(184,149,106,.06)"><td colspan="6"><strong style="color:var(--gold)">TOTAL (${mConf.length} events)</strong></td><td class="mono" style="color:var(--green);font-weight:700">${fmt(tF)}</td><td class="mono" style="color:var(--blue);font-weight:700">${fmt(tB)}</td><td class="mono" style="color:var(--gold);font-weight:700">${fmt(tF+tB)}</td><td></td></tr>`;
+  }
+  document.getElementById('bud-events-tbl').innerHTML=eRows||`<tr><td colspan="10"><div class="empty">No confirmed events for ${lbl}. Events marked as "Confirmed" appear here automatically.</div></td></tr>`;
+
+  // Annual budget table
+  let aRows='';
+  FY_MONTHS.forEach((_,i)=>{
+    const fBi=getBudget(i,'food'),fAi=getActual(i,'food');
+    const bBi=getBudget(i,'bev'), bAi=getActual(i,'bev');
+    const fPi=fBi>0?fAi/fBi*100:0, bPi=bBi>0?bAi/bBi*100:0;
+    aRows+=`<tr ${i===BM?'style="background:rgba(184,149,106,.04)"':''}>
+      <td><strong ${i===BM?'style="color:var(--gold)"':''}>${fyLabel(i)}</strong></td>
+      <td class="mono">${fmt(fBi)}</td><td class="mono">${fmt(fAi)}</td>
+      <td class="mono" style="color:${fAi>=fBi&&fBi>0?'var(--green)':'var(--amber)'}">${fBi>0?fmt(fBi-fAi):'—'}</td>
+      <td>${fBi>0?progBar(fPi):'<span style="color:var(--text-3);font-size:11px">Not set</span>'}</td>
+      <td class="mono">${fmt(bBi)}</td><td class="mono">${fmt(bAi)}</td>
+      <td class="mono" style="color:${bAi>=bBi&&bBi>0?'var(--green)':'var(--amber)'}">${bBi>0?fmt(bBi-bAi):'—'}</td>
+      <td>${bBi>0?progBar(bPi):'<span style="color:var(--text-3);font-size:11px">Not set</span>'}</td>
+      <td class="mono" style="font-weight:600">${fmt(fBi+bBi)}</td>
+      <td class="mono" style="font-weight:600;color:var(--gold)">${fmt(fAi+bAi)}</td>
+      <td>${(fBi+bBi)>0?statusPill((fAi+bAi)/(fBi+bBi)*100):'<span style="color:var(--text-3);font-size:11px">—</span>'}</td>
+    </tr>`;
+  });
+  document.getElementById('annual-bud-tbl').innerHTML=aRows;
+}
+
+// ── CHART OPTION HELPERS ─────────────────────────────
+function cOpts(title,stacked){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{family:'Poppins',size:11},color:'#9a9590'}},title:title?{display:true,text:title,color:'#e4dfd8',font:{size:11}}:undefined},scales:{y:{stacked:!!stacked,ticks:{color:'#9a9590',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},x:{stacked:!!stacked,ticks:{color:'#9a9590',font:{size:10}},grid:{display:false}}}};}
+function dOpts(){return{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Poppins'},color:'#9a9590',boxWidth:10}}}};}
+
+// ── REPEAT GUEST DETECTION ────────────────────────────
+function isRepeatGuest(inq){
+  const phone=inq.phone||''; const name=(inq.guest_name||'').toLowerCase();
+  return (D.inquiries||[]).some(x=>x.id!==inq.id&&(x.phone===phone||(x.guest_name||'').toLowerCase()===name));
+}
+function liveGuestSearch(val, ctx){
+  if(!val||val.length<2){document.getElementById(ctx+'-search-results').innerHTML='';return;}
+  const v=val.toLowerCase();
+  const seen=new Set();
+  const matches=(D.inquiries||[]).filter(x=>{
+    const key=x.phone;
+    if(seen.has(key))return false;seen.add(key);
+    return (x.guest_name||'').toLowerCase().includes(v)||(x.phone||'').includes(val);
+  }).slice(0,5);
+  if(!matches.length){document.getElementById(ctx+'-search-results').innerHTML='<div style="font-size:11.5px;color:var(--text-2);padding:4px 0">No existing guest found — new guest.</div>';return;}
+  document.getElementById(ctx+'-search-results').innerHTML=matches.map(x=>`
+    <div class="guest-search-result" onclick="prefillFromGuest('${x.id}','${ctx}')">
+      <div class="gsname">${x.guest_name} <span class="repeat-badge">RETURNING GUEST</span></div>
+      <div class="gssub">${x.phone} · Last: ${x.event_type||'Unknown'} on ${fmtDate(x.event_date)||'TBD'} · ${x.status}</div>
+    </div>`).join('');
+}
+function prefillFromGuest(id,ctx){
+  const x=(D.inquiries||[]).find(i=>i.id==id); if(!x) return;
+  if(ctx==='qa'){
+    document.getElementById('qa-name').value=x.guest_name||'';
+    document.getElementById('qa-phone').value=x.phone||'';
+    document.getElementById('qa-repeat-id').value=id;
+    document.getElementById('qa-search-results').innerHTML=`<div class="alert al-a">⚠ Returning guest pre-filled. Add this new event's details below.</div>`;
+  } else {
+    document.getElementById('i-name').value=x.guest_name||'';
+    document.getElementById('i-phone').value=x.phone||'';
+    document.getElementById('i-email').value=x.email||'';
+    document.getElementById('i-repeat-of').value=id;
+    document.getElementById('inq-repeat-flag').style.display='block';
+    document.getElementById('inq-search-results').innerHTML='';
+    const hist=(D.inquiries||[]).filter(i=>i.phone===x.phone&&i.id!==id).slice(0,4);
+    document.getElementById('inq-repeat-panel').style.display='block';
+    document.getElementById('inq-repeat-list').innerHTML=hist.map(h=>`<div>• ${h.event_type||'—'} · ${fmtDate(h.event_date)||'TBD'} · ${h.status} · ${h.venue||'—'} · Inquired: ${fmtDate(h.inquiry_date)||'—'}</div>`).join('');
+  }
+}
+function checkRepeatByName(v){
+  if(!v||v.length<3)return;
+  const nl=v.toLowerCase();
+  const prev=(D.inquiries||[]).filter(x=>(x.guest_name||'').toLowerCase()===nl&&x.id!==document.getElementById('i-id').value);
+  if(prev.length){
+    document.getElementById('inq-repeat-flag').style.display='block';
+    document.getElementById('inq-repeat-panel').style.display='block';
+    document.getElementById('inq-repeat-list').innerHTML=prev.slice(0,3).map(h=>`<div>• ${h.event_type||'—'} · ${fmtDate(h.event_date)||'TBD'} · ${h.status}</div>`).join('');
+  }
+}
+function checkRepeatByPhone(v){
+  if(!v||v.length<7)return;
+  const prev=(D.inquiries||[]).filter(x=>x.phone===v&&x.id!==document.getElementById('i-id').value);
+  if(prev.length){
+    document.getElementById('inq-repeat-flag').style.display='block';
+    document.getElementById('inq-repeat-panel').style.display='block';
+    document.getElementById('inq-repeat-list').innerHTML=prev.slice(0,3).map(h=>`<div>• ${h.guest_name} · ${h.event_type||'—'} · ${fmtDate(h.event_date)||'TBD'} · ${h.status}</div>`).join('');
+  }
+}
+function checkVenueCap(){
+  const pax=parseInt(document.getElementById('i-pax').value)||0;
+  const venue=document.getElementById('i-venue').value;
+  const cap=VENUE_CAP[venue]||9999;
+  document.getElementById('cap-warning').style.display=pax>cap&&venue?'block':'none';
+}
+
+// ── QUICK ADD ────────────────────────────────────────
+function openQuickAdd(){
+  ['qa-search','qa-name','qa-phone','qa-remarks'].forEach(id=>document.getElementById(id).value='');
+  ['qa-etype','qa-venue','qa-source'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('qa-pax').value='';
+  document.getElementById('qa-edate').value='';
+  document.getElementById('qa-status').value='Pending';
+  document.getElementById('qa-repeat-id').value='';
+  document.getElementById('qa-search-results').innerHTML='';
+  document.getElementById('qa-repeat-notice').style.display='none';
+  openM('m-quick');
+  setTimeout(()=>document.getElementById('qa-name').focus(),200);
+}
+async function saveQuickAdd(){
+  const name=document.getElementById('qa-name').value.trim();
+  const phone=document.getElementById('qa-phone').value.trim();
+  if(!name||!phone){toast('Guest name and contact number are required.','e');return;}
+  const edate=document.getElementById('qa-edate').value;
+  const inqDate=todayStr();
+  const payload={
+    fy:FY, fy_month:fyIdxNow(),
+    inquiry_date:inqDate, guest_name:name, phone,
+    event_type:document.getElementById('qa-etype').value,
+    pax:parseInt(document.getElementById('qa-pax').value)||0,
+    event_date:edate,
+    venue:document.getElementById('qa-venue').value,
+    source:document.getElementById('qa-source').value,
+    status:document.getElementById('qa-status').value,
+    remarks:document.getElementById('qa-remarks').value,
+    repeat_of:document.getElementById('qa-repeat-id').value||'',
+    food_revenue:0, bev_revenue:0, total_revenue:0
+  };
+  showLoader('Saving quick inquiry...');
+  try{
+    await DB.add('FUNC_INQUIRIES',payload);
+    await reloadData();
+    closeM('m-quick');
+    renderInqMonthTabs();
+    renderFollowupAlerts();
+    renderInquiries();
+    toast('Inquiry saved! Tap Edit to add full details later.');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+
+// ── FULL INQUIRY MODAL ────────────────────────────────
+function openFullModal(){
+  clearInqModal();
+  document.getElementById('inq-modal-title').textContent='Add Inquiry';
+  document.getElementById('inq-save-btn').textContent='Save Inquiry';
+  document.getElementById('inq-search-wrap').style.display='block';
+  document.getElementById('i-inq-date').value=todayStr();
+  openM('m-inq');
+  setTimeout(()=>document.getElementById('i-name').focus(),200);
+}
+function editInquiry(id){
+  const x=(D.inquiries||[]).find(i=>i.id==id);if(!x)return;
+  clearInqModal();
+  document.getElementById('inq-modal-title').textContent='Edit Inquiry';
+  document.getElementById('inq-save-btn').textContent='Update Inquiry';
+  document.getElementById('inq-search-wrap').style.display='none';
+  document.getElementById('i-id').value=id;
+  document.getElementById('i-inq-date').value=x.inquiry_date||'';
+  document.getElementById('i-name').value=x.guest_name||'';
+  document.getElementById('i-phone').value=x.phone||'';
+  document.getElementById('i-email').value=x.email||'';
+  document.getElementById('i-source').value=x.source||'';
+  document.getElementById('i-etype').value=x.event_type||'';
+  document.getElementById('i-edate').value=x.event_date||'';
+  document.getElementById('i-pax').value=x.pax||'';
+  document.getElementById('i-venue').value=x.venue||'';
+  document.getElementById('i-menu').value=x.menu_type||'';
+  document.getElementById('i-food-rev').value=x.food_revenue||'';
+  document.getElementById('i-bev-rev').value=x.bev_revenue||'';
+  document.getElementById('i-status').value=x.status||'Pending';
+  document.getElementById('i-followup').value=x.followup_date||'';
+  document.getElementById('i-lost-reason').value=x.lost_reason||'';
+  document.getElementById('i-remarks').value=x.remarks||'';
+  calcTotalRev(); onStatusChange(); checkVenueCap();
+  openM('m-inq');
+}
+function clearInqModal(){
+  document.getElementById('i-id').value='';
+  document.getElementById('i-repeat-of').value='';
+  ['i-name','i-phone','i-email','i-remarks'].forEach(id=>document.getElementById(id).value='');
+  ['i-food-rev','i-bev-rev'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('i-total-rev').value='';
+  ['i-etype','i-venue','i-menu','i-source','i-lost-reason'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('i-status').value='Pending';
+  document.getElementById('i-inq-date').value='';
+  document.getElementById('i-followup').value='';
+  document.getElementById('inq-repeat-flag').style.display='none';
+  document.getElementById('inq-repeat-panel').style.display='none';
+  document.getElementById('inq-search-results').innerHTML='';
+  document.getElementById('inq-search').value='';
+  document.getElementById('cap-warning').style.display='none';
+  document.getElementById('lost-reason-wrap').style.display='none';
+}
+function calcTotalRev(){
+  const f=parseFloat(document.getElementById('i-food-rev').value)||0;
+  const b=parseFloat(document.getElementById('i-bev-rev').value)||0;
+  document.getElementById('i-total-rev').value=f+b>0?fmt(f+b):'';
+}
+function onStatusChange(){
+  const s=document.getElementById('i-status').value;
+  document.getElementById('lost-reason-wrap').style.display=['Cancelled','Not Interested'].includes(s)?'block':'none';
+}
+
+async function saveInquiry(){
+  const eid=document.getElementById('i-id').value;
+  const name=document.getElementById('i-name').value.trim();
+  const phone=document.getElementById('i-phone').value.trim();
+  const inqDate=document.getElementById('i-inq-date').value;
+  if(!name){toast('Guest name is required.','e');return;}
+  if(!phone){toast('Contact number is required.','e');return;}
+  const fRev=parseFloat(document.getElementById('i-food-rev').value)||0;
+  const bRev=parseFloat(document.getElementById('i-bev-rev').value)||0;
+  const payload={
+    fy:FY,
+    fy_month:inqDate?fyIdx(inqDate):fyIdxNow(),
+    inquiry_date:inqDate,
+    guest_name:name, phone,
+    email:document.getElementById('i-email').value,
+    source:document.getElementById('i-source').value,
+    event_type:document.getElementById('i-etype').value,
+    event_date:document.getElementById('i-edate').value,
+    pax:parseInt(document.getElementById('i-pax').value)||0,
+    venue:document.getElementById('i-venue').value,
+    menu_type:document.getElementById('i-menu').value,
+    food_revenue:fRev, bev_revenue:bRev, total_revenue:fRev+bRev,
+    status:document.getElementById('i-status').value,
+    followup_date:document.getElementById('i-followup').value,
+    lost_reason:document.getElementById('i-lost-reason').value,
+    remarks:document.getElementById('i-remarks').value,
+    repeat_of:document.getElementById('i-repeat-of').value||''
+  };
+  showLoader(eid?'Updating inquiry...':'Saving inquiry...');
+  try{
+    if(eid) await DB.update('FUNC_INQUIRIES',eid,payload);
+    else    await DB.add('FUNC_INQUIRIES',payload);
+    await reloadData();
+    closeM('m-inq');
+    renderInqMonthTabs();
+    renderFollowupAlerts();
+    renderInquiries();
+    toast(eid?'Inquiry updated!':'Inquiry saved!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function deleteInquiry(id){
+  if(!confirm('Delete this inquiry permanently?'))return;
+  showLoader('Deleting...');
+  try{
+    await DB.remove('FUNC_INQUIRIES',id);
+    await reloadData();
+    renderInqMonthTabs(); renderFollowupAlerts(); renderInquiries();
+    toast('Inquiry deleted.');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+
+// ── QUICK STATUS UPDATE ───────────────────────────────
+function openQuickStatus(id){
+  const x=(D.inquiries||[]).find(i=>i.id==id);if(!x)return;
+  document.getElementById('qs-id').value=id;
+  document.getElementById('qstatus-name').textContent=x.guest_name+' · '+x.event_type+' · Current: '+x.status;
+  document.getElementById('qs-status').value=x.status;
+  document.getElementById('qs-followup').value=x.followup_date||'';
+  document.getElementById('qs-remarks').value='';
+  document.getElementById('qs-lost-reason').value=x.lost_reason||'';
+  document.getElementById('qs-lost-wrap').style.display=['Cancelled','Not Interested'].includes(x.status)?'block':'none';
+  document.getElementById('qs-status').onchange=function(){ document.getElementById('qs-lost-wrap').style.display=['Cancelled','Not Interested'].includes(this.value)?'block':'none'; };
+  openM('m-qstatus');
+}
+async function saveQuickStatus(){
+  const id=document.getElementById('qs-id').value;
+  const x=(D.inquiries||[]).find(i=>i.id==id);if(!x)return;
+  const newStatus=document.getElementById('qs-status').value;
+  const payload={...Object.fromEntries(Object.entries(x)),
+    status:newStatus,
+    followup_date:document.getElementById('qs-followup').value,
+    lost_reason:document.getElementById('qs-lost-reason').value,
+    remarks:x.remarks?(x.remarks+'\n'+document.getElementById('qs-remarks').value).trim():document.getElementById('qs-remarks').value
+  };
+  showLoader('Updating...');
+  try{
+    await DB.update('FUNC_INQUIRIES',id,payload);
+    await reloadData();
+    closeM('m-qstatus'); renderInqMonthTabs(); renderFollowupAlerts(); renderInquiries();
+    toast('Status updated to: '+newStatus);
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+
+// ── FUNCTION BUDGETS ──────────────────────────────────
+function openBudgetModal(){
+  document.getElementById('fbud-month-lbl').textContent=fyLabel(BM);
+  document.getElementById('fb-food').value=getBudget(BM,'food')||'';
+  document.getElementById('fb-bev').value=getBudget(BM,'bev')||'';
+  openM('m-fbud');
+}
+async function saveFuncBudget(){
+  const food=parseFloat(document.getElementById('fb-food').value)||0;
+  const bev =parseFloat(document.getElementById('fb-bev').value)||0;
+  showLoader('Saving function budgets...');
+  try{
+    const existing=(D.funcBudgets||[]).filter(x=>Number(x.fy_month)===BM);
+    const foodRow=existing.find(x=>x.budget_type==='food');
+    const bevRow =existing.find(x=>x.budget_type==='bev');
+    if(foodRow) await DB.update('FUNC_BUDGETS',foodRow.id,{fy:FY,fy_month:BM,budget_type:'food',amount:food});
+    else        await DB.add('FUNC_BUDGETS',{fy:FY,fy_month:BM,budget_type:'food',amount:food});
+    if(bevRow)  await DB.update('FUNC_BUDGETS',bevRow.id,{fy:FY,fy_month:BM,budget_type:'bev',amount:bev});
+    else        await DB.add('FUNC_BUDGETS',{fy:FY,fy_month:BM,budget_type:'bev',amount:bev});
+    D.funcBudgets=await fetchSheet('FuncBudgets');
+    closeM('m-fbud'); renderBudget();
+    toast('Function budgets saved for '+fyLabel(BM)+'!');
+  }catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+
+// ── FUNCTIONS DOWNLOADS ──────────────────────────
+function dlFunctionsPDF(){
+  const mon = CM;
+  const { html } = buildFunctionsReport(D.inquiries||[], mon, FY);
+  printReport(html, 'Functions Report — '+FY_MONTHS[mon]);
+}
+function dlFunctionsExcel(){
+  const mon = CM;
+  const inqs = (D.inquiries||[]).filter(x=>x.fy_month==mon);
+  const conf = inqs.filter(x=>x.status==='Confirmed');
+  const mLabel = FY_MONTHS[mon]+' '+(mon<9?FY+1:FY);
+  const headers = ['Inquiry Date','Guest Name','Phone','Email','Source','Event Type','Event Date','PAX','Venue','Menu Type','Food Revenue','Bev Revenue','Total Revenue','Status','Follow-up Date','Lost Reason','Remarks'];
+  const rows = inqs.map(x=>[fmtDate(x.inquiry_date)||'',x.guest_name||'',x.phone||'',x.email||'',x.source||'',x.event_type||'',fmtDate(x.event_date)||'',Number(x.pax||0),x.venue||'',x.menu_type||'',Number(x.food_revenue||0),Number(x.bev_revenue||0),Number(x.food_revenue||0)+Number(x.bev_revenue||0),x.status||'',fmtDate(x.followup_date)||'',x.lost_reason||'',x.remarks||'']);
+  const confRows = conf.map(x=>[fmtDate(x.event_date)||'',x.guest_name||'',x.event_type||'',x.venue||'',x.pax||0,Number(x.food_revenue||0),Number(x.bev_revenue||0),Number(x.food_revenue||0)+Number(x.bev_revenue||0)]);
+  const summary=[['Functions & Events Report — '+mLabel],['Generated',rDate()],[''],
+    ['Total Inquiries',inqs.length],['Confirmed',conf.length],['Conversion Rate',(inqs.length>0?(conf.length/inqs.length*100).toFixed(1):0)+'%'],
+    ['Total Revenue','LKR '+conf.reduce((a,x)=>a+Number(x.food_revenue||0)+Number(x.bev_revenue||0),0).toLocaleString()],[''],
+  ];
+  downloadExcel([
+    {name:'Summary', data:summary, colWidths:[22,16]},
+    {name:'All Inquiries', data:[headers,...rows], colWidths:[13,18,14,20,16,14,13,6,14,14,14,14,14,14,13,16,20]},
+    {name:'Confirmed Events', data:[['Event Date','Guest','Type','Venue','PAX','Food Revenue','Bev Revenue','Total Revenue'],...confRows], colWidths:[13,18,14,14,6,14,14,14]},
+  ], 'functions_'+mLabel.replace(/ /g,'_')+'.xlsx');
+}
+
+load();
+
+// ── EXCEL IMPORT ──────────────────────────────────────
+function openImport(){ openM('m-import'); }
+function closeImport(){ closeM('m-import'); document.getElementById('imp-preview').innerHTML=''; document.getElementById('imp-file').value=''; }
+
+let importRows = [];
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const fi = document.getElementById('imp-file');
+  if(fi) fi.addEventListener('change', handleImportFile);
+});
+
+async function handleImportFile(e){
+  const file = e.target.files[0]; if(!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const preview = document.getElementById('imp-preview');
+  preview.innerHTML = '<div style="color:var(--text-2);font-size:11.5px;padding:8px">Parsing file…</div>';
+  importRows = [];
+
+  if(ext === 'csv'){
+    const text = await file.text();
+    const rows = text.split('\n').filter(Boolean);
+    const headers = rows[0].split(',').map(h=>h.replace(/^"|"$/g,'').trim());
+    importRows = rows.slice(1).map(row=>{
+      const vals = row.split(',').map(v=>v.replace(/^"|"$/g,'').trim());
+      const obj = {};
+      headers.forEach((h,i)=>obj[h]=vals[i]||'');
+      return obj;
+    });
+  } else {
+    preview.innerHTML='<div class="alert al-a">Please use a CSV file. To convert Excel: File → Save As → CSV (UTF-8).</div>';
+    return;
+  }
+
+  if(!importRows.length){ preview.innerHTML='<div class="alert al-r">No data rows found.</div>'; return; }
+
+  // Show preview
+  const cols = Object.keys(importRows[0]).slice(0,8);
+  let html = `<div style="font-size:11.5px;color:var(--text-2);margin-bottom:8px">${importRows.length} rows found. Preview (first 5):</div>`;
+  html += '<div class="overflow-x"><table><thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+  importRows.slice(0,5).forEach(r=>{ html+='<tr>'+cols.map(c=>`<td style="font-size:11px">${r[c]||''}</td>`).join('')+'</tr>'; });
+  html += '</tbody></table></div>';
+  html += `<div style="margin-top:10px;font-size:11.5px;color:var(--amber)">⚠ Map your column names: the importer looks for columns named <strong>guest_name, phone, event_type, event_date, pax, venue, menu_type, status, source, remarks, food_revenue, bev_revenue, inquiry_date</strong>. Rename your Excel headers to match before importing.</div>`;
+  preview.innerHTML = html;
+}
+
+async function doImport(){
+  if(!importRows.length){ toast('No data to import.','e'); return; }
+  showLoader(`Importing ${importRows.length} rows…`);
+  let ok=0, fail=0;
+  for(const row of importRows){
+    try{
+      const iDate = fmtDate(row.inquiry_date||row['Inquiry Date']||row['Date']||new Date().toISOString().split('T')[0]);
+      const p = {
+        fy:FY, fy_month:iDate?fyIdx(iDate):fyIdxNow(),
+        inquiry_date: iDate,
+        guest_name:   row.guest_name||row['Guest Name']||row['Name']||'',
+        phone:        row.phone||row['Phone']||row['Contact']||'',
+        email:        row.email||row['Email']||'',
+        source:       row.source||row['Source']||row['How Found Us']||'',
+        event_type:   row.event_type||row['Event Type']||'',
+        event_date:   fmtDate(row.event_date||row['Event Date']||''),
+        pax:          parseInt(row.pax||row['Pax']||row['Guest Count']||0)||0,
+        venue:        row.venue||row['Venue']||'',
+        menu_type:    row.menu_type||row['Menu Type']||row['Menu']||'',
+        food_revenue: parseFloat(row.food_revenue||row['Food Revenue']||0)||0,
+        bev_revenue:  parseFloat(row.bev_revenue||row['Bev Revenue']||row['Beverage Revenue']||0)||0,
+        total_revenue:parseFloat(row.total_revenue||0)||0,
+        status:       row.status||row['Status']||'Pending',
+        followup_date:fmtDate(row.followup_date||row['Follow Up Date']||''),
+        remarks:      row.remarks||row['Remarks']||row['Notes']||'',
+        repeat_of:'', lost_reason:''
+      };
+      if(!p.guest_name){ fail++; continue; }
+      await DB.add('FUNC_INQUIRIES', p);
+      ok++;
+    }catch(e){ fail++; }
+  }
+  await reloadData();
+  closeImport();
+  renderInqMonthTabs(); renderFollowupAlerts(); renderInquiries();
+  toast(`Import complete: ${ok} added, ${fail} skipped.`, ok>0?'s':'e');
+  hideLoader();
+}
+</script>
+
+<!-- EXCEL IMPORT MODAL -->
+<div class="overlay" id="m-import">
+  <div class="modal wide">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-t">📥 Import from CSV / Excel</div>
+        <div style="font-size:10.5px;color:var(--text-2);margin-top:2px">Upload previous years' inquiry data in bulk</div>
+      </div>
+      <button class="modal-x" onclick="closeImport()">×</button>
+    </div>
+    <div class="modal-bd">
+      <div class="alert al-a" style="margin-bottom:14px">
+        <div><strong>How to import from Excel:</strong><br>
+        1. Open your Excel file → File → Save As → CSV UTF-8<br>
+        2. Rename column headers to match: <code>guest_name, phone, event_type, event_date, pax, venue, status, source, remarks, food_revenue, bev_revenue, inquiry_date</code><br>
+        3. Upload the CSV file below</div>
+      </div>
+      <div class="fr"><label>Select CSV File</label><input type="file" id="imp-file" accept=".csv,.txt" style="padding:6px;cursor:pointer"></div>
+      <div id="imp-preview" style="margin-top:8px"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-out" onclick="closeImport()">Cancel</button>
+      <button class="btn btn-gold" onclick="doImport()">Import Rows →</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
