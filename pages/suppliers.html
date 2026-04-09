@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Suppliers & Print — CC Marketing Hub</title>
+<link rel="stylesheet" href="../css/main.css">
+<script src="../js/app.js"></script>
+<script src="../js/sidebar.js"></script>
+</head>
+<body>
+<div id="loader"><div class="spin"></div><div id="loader-msg">Loading...</div></div>
+<aside class="sidebar" id="sidebar"></aside>
+<main class="main">
+  <header class="topbar">
+    <div><div class="tb-title">Suppliers & Print</div><div class="tb-sub">Supplier directory & print/production order tracking</div></div>
+    <div class="tb-r">
+      <span class="fy-chip">LKR · FY 2026–27</span>
+      <button class="btn btn-out" onclick="openSupModal()">+ Add Supplier</button>
+      <button class="btn btn-gold" onclick="openOrderModal()">+ Add Print Order</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="kpi-row k4" id="sup-kpis"></div>
+
+    <div class="sec"><div class="sec-t">Supplier Directory</div></div>
+    <div class="tc">
+      <table>
+        <thead><tr><th>Supplier Name</th><th>Category</th><th>Contact Person</th><th>Phone</th><th>YTD Spend</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody id="sup-tbl"></tbody>
+      </table>
+    </div>
+
+    <div class="sec">
+      <div class="sec-t">Print & Production Orders — FY 2026–27</div>
+      <div class="m-tabs" id="p-tabs" style="margin:0"></div>
+    </div>
+    <div class="tc">
+      <table>
+        <thead><tr><th>Date</th><th>Month</th><th>Supplier</th><th>Description</th><th>Qty</th><th>Unit Price (LKR)</th><th>Total (LKR)</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody id="ord-tbl"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- SUPPLIER MODAL -->
+<div class="overlay" id="m-sup">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="sup-t">Add Supplier</div><button class="modal-x" onclick="closeM('m-sup')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg"><div class="fr"><label>Supplier Name</label><input type="text" id="s-name" placeholder="Company name"></div><div class="fr"><label>Category</label><select id="s-cat"><option>Printing</option><option>Signage</option><option>Photography</option><option>Videography</option><option>Design</option><option>Events</option><option>Other</option></select></div></div>
+      <div class="fg"><div class="fr"><label>Contact Person</label><input type="text" id="s-contact" placeholder="Name"></div><div class="fr"><label>Phone</label><input type="text" id="s-phone" placeholder="0XX-XXXXXXX"></div></div>
+      <div class="fr"><label>Notes</label><textarea id="s-notes"></textarea></div>
+      <input type="hidden" id="s-id">
+    </div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-sup')">Cancel</button><button class="btn btn-gold" onclick="saveSup()" id="s-save">Add Supplier</button></div>
+  </div>
+</div>
+
+<!-- ORDER MODAL -->
+<div class="overlay" id="m-ord">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-t" id="ord-t">Add Print Order</div><button class="modal-x" onclick="closeM('m-ord')">×</button></div>
+    <div class="modal-bd">
+      <div class="fg"><div class="fr"><label>Date</label><input type="date" id="o-date"></div><div class="fr"><label>Supplier</label><select id="o-sup"></select></div></div>
+      <div class="fr"><label>Description</label><input type="text" id="o-desc" placeholder="e.g. A4 Brochures, Hanging Banners, Menu Cards..."></div>
+      <div class="fg3">
+        <div class="fr"><label>Quantity</label><input type="number" id="o-qty" placeholder="1"></div>
+        <div class="fr"><label>Unit Price (LKR)</label><input type="number" id="o-up" placeholder="0.00"></div>
+        <div class="fr"><label>Total (LKR)</label><input type="number" id="o-tot" placeholder="Auto" readonly style="opacity:.6;cursor:not-allowed"></div>
+      </div>
+      <div class="fr"><label>Notes</label><textarea id="o-notes"></textarea></div>
+      <input type="hidden" id="o-id">
+    </div>
+    <div class="modal-ft"><button class="btn btn-out" onclick="closeM('m-ord')">Cancel</button><button class="btn btn-gold" onclick="saveOrder()" id="o-save">Save Order</button></div>
+  </div>
+</div>
+
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('suppliers');
+requireAuth();
+let D={}, pFilter='all';
+
+// Auto-calc total
+document.getElementById('o-qty').addEventListener('input',calcTotal);
+document.getElementById('o-up').addEventListener('input',calcTotal);
+function calcTotal(){
+  const q=parseFloat(document.getElementById('o-qty').value)||0;
+  const u=parseFloat(document.getElementById('o-up').value)||0;
+  document.getElementById('o-tot').value=(q*u).toFixed(2);
+}
+
+async function load(){
+  showLoader('Loading...');
+  try{const r=await DB.getAll();D=r;renderSidebar(r.user,r.sidebarFields);renderTabs();render();}
+  catch(e){toast('Load failed: '+e.message,'e');}
+  hideLoader();
+}
+
+function getSupYTD(supId){return(D.printOrders||[]).filter(o=>o.supplier_id==supId).reduce((a,o)=>a+Number(o.qty||1)*Number(o.unit_price||0),0);}
+function ordTotal(o){return Number(o.qty||1)*Number(o.unit_price||0);}
+
+function renderTabs(){
+  document.getElementById('p-tabs').innerHTML=`<div class="m-tab ${pFilter==='all'?'active':''}" onclick="setPF('all')">All</div>`+
+    FY_MONTHS.map((m,i)=>`<div class="m-tab ${pFilter==i?'active':''}" onclick="setPF(${i})">${FY_SHORT[i]}</div>`).join('');
+}
+function setPF(v){pFilter=v;renderTabs();render();}
+
+function render(){
+  const ords=D.printOrders||[], sups=D.suppliers||[];
+  const totSpend=ords.reduce((a,o)=>a+ordTotal(o),0);
+  document.getElementById('sup-kpis').innerHTML=`
+    <div class="kpi k-g"><div class="kpi-lbl">Total Suppliers</div><div class="kpi-val">${sups.length}</div></div>
+    <div class="kpi k-a"><div class="kpi-lbl">YTD Print Spend</div><div class="kpi-val">${fmt(totSpend)}</div></div>
+    <div class="kpi k-b"><div class="kpi-lbl">Total Orders</div><div class="kpi-val">${ords.length}</div><div class="kpi-sub">this FY</div></div>
+    <div class="kpi k-gr"><div class="kpi-lbl">This Month</div><div class="kpi-val">${fmt(ords.filter(o=>o.fy_month==fyIdxNow()).reduce((a,o)=>a+ordTotal(o),0))}</div></div>`;
+
+  let sRows='';
+  sups.forEach(s=>{
+    sRows+=`<tr><td><strong>${s.name}</strong></td><td><span class="pill pg">${s.category}</span></td><td>${s.contact_person||'—'}</td><td>${s.phone||'—'}</td><td class="mono" style="font-weight:600">${fmt(getSupYTD(s.id))}</td><td style="font-size:11px;color:var(--text-2)">${s.notes||'—'}</td><td><div style="display:flex;gap:4px"><button class="btn btn-edit btn-sm" onclick="editSup('${s.id}')">Edit</button><button class="btn btn-ghost btn-sm" onclick="delSup('${s.id}')">✕</button></div></td></tr>`;
+  });
+  document.getElementById('sup-tbl').innerHTML=sRows||`<tr><td colspan="7"><div class="empty"><div class="ei">🏭</div>No suppliers added yet.</div></td></tr>`;
+
+  const filtered=pFilter==='all'?ords:ords.filter(o=>o.fy_month==pFilter);
+  let oRows='';
+  filtered.forEach(o=>{
+    const sup=sups.find(s=>s.id==o.supplier_id);
+    oRows+=`<tr><td>${o.date||'—'}</td><td>${fyLabel(o.fy_month)}</td><td>${sup?.name||'—'}</td><td style="font-weight:500">${o.description||'—'}</td><td class="mono">${o.qty||1}</td><td class="mono">${fmt(o.unit_price)}</td><td class="mono" style="font-weight:600">${fmt(ordTotal(o))}</td><td style="font-size:11px;color:var(--text-2)">${o.notes||'—'}</td><td><div style="display:flex;gap:4px"><button class="btn btn-edit btn-sm" onclick="editOrder('${o.id}')">Edit</button><button class="btn btn-ghost btn-sm" onclick="delOrder('${o.id}')">✕</button></div></td></tr>`;
+  });
+  document.getElementById('ord-tbl').innerHTML=oRows||`<tr><td colspan="9"><div class="empty"><div class="ei">📋</div>No orders recorded.</div></td></tr>`;
+}
+
+function openSupModal(){
+  document.getElementById('sup-t').textContent='Add Supplier';document.getElementById('s-save').textContent='Add Supplier';document.getElementById('s-id').value='';
+  ['s-name','s-contact','s-phone','s-notes'].forEach(id=>document.getElementById(id).value='');openM('m-sup');
+}
+function editSup(id){
+  const s=(D.suppliers||[]).find(x=>x.id==id);if(!s)return;
+  document.getElementById('sup-t').textContent='Edit Supplier';document.getElementById('s-save').textContent='Update';document.getElementById('s-id').value=id;
+  document.getElementById('s-name').value=s.name||'';document.getElementById('s-cat').value=s.category||'Printing';
+  document.getElementById('s-contact').value=s.contact_person||'';document.getElementById('s-phone').value=s.phone||'';
+  document.getElementById('s-notes').value=s.notes||'';openM('m-sup');
+}
+async function saveSup(){
+  const eid=document.getElementById('s-id').value;
+  const name=document.getElementById('s-name').value.trim();
+  if(!name){toast('Supplier name required.','e');return;}
+  const p={name,category:document.getElementById('s-cat').value,contact_person:document.getElementById('s-contact').value,phone:document.getElementById('s-phone').value,notes:document.getElementById('s-notes').value};
+  showLoader('Saving...');
+  try{if(eid)await DB.update('SUPPLIERS',eid,p);else await DB.add('SUPPLIERS',p);const r=await DB.getAll();D=r;closeM('m-sup');render();toast(eid?'Updated!':'Supplier added!');}
+  catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delSup(id){if(!confirm('Delete supplier?'))return;showLoader('Deleting...');try{await DB.remove('SUPPLIERS',id);const r=await DB.getAll();D=r;render();toast('Deleted.');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();}
+
+function openOrderModal(){
+  document.getElementById('ord-t').textContent='Add Print Order';document.getElementById('o-save').textContent='Save Order';document.getElementById('o-id').value='';
+  document.getElementById('o-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('o-sup').innerHTML=(D.suppliers||[]).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  ['o-desc','o-notes'].forEach(id=>document.getElementById(id).value='');
+  ['o-qty','o-up','o-tot'].forEach(id=>document.getElementById(id).value='');
+  openM('m-ord');
+}
+function editOrder(id){
+  const o=(D.printOrders||[]).find(x=>x.id==id);if(!o)return;
+  document.getElementById('ord-t').textContent='Edit Print Order';document.getElementById('o-save').textContent='Update';document.getElementById('o-id').value=id;
+  document.getElementById('o-date').value=o.date||'';
+  document.getElementById('o-sup').innerHTML=(D.suppliers||[]).map(s=>`<option value="${s.id}" ${s.id==o.supplier_id?'selected':''}>${s.name}</option>`).join('');
+  document.getElementById('o-desc').value=o.description||'';document.getElementById('o-qty').value=o.qty||'';
+  document.getElementById('o-up').value=o.unit_price||'';document.getElementById('o-tot').value=ordTotal(o).toFixed(2);
+  document.getElementById('o-notes').value=o.notes||'';openM('m-ord');
+}
+async function saveOrder(){
+  const eid=document.getElementById('o-id').value;
+  const date=document.getElementById('o-date').value;
+  const desc=document.getElementById('o-desc').value.trim();
+  const qty=parseFloat(document.getElementById('o-qty').value)||1;
+  const up=parseFloat(document.getElementById('o-up').value)||0;
+  if(!desc){toast('Description required.','e');return;}
+  const p={supplier_id:document.getElementById('o-sup').value,fy:FY,fy_month:date?fyIdx(date):fyIdxNow(),date,description:desc,qty,unit_price:up,notes:document.getElementById('o-notes').value};
+  showLoader('Saving...');
+  try{if(eid)await DB.update('PRINT_ORDERS',eid,p);else await DB.add('PRINT_ORDERS',p);const r=await DB.getAll();D=r;closeM('m-ord');render();toast(eid?'Updated!':'Order saved!');}
+  catch(e){toast('Failed: '+e.message,'e');}
+  hideLoader();
+}
+async function delOrder(id){if(!confirm('Delete order?'))return;showLoader('Deleting...');try{await DB.remove('PRINT_ORDERS',id);const r=await DB.getAll();D=r;render();toast('Deleted.');}catch(e){toast('Failed: '+e.message,'e');}hideLoader();}
+
+load();
+</script>
+</body>
+</html>
